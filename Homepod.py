@@ -1,6 +1,10 @@
 import pyatv
 import asyncio
+import logging
 from pyatv.const import Protocol
+
+# Configure logging with debug level
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
 async def cast_music_to_homepod():
     # Get the current event loop
@@ -9,10 +13,10 @@ async def cast_music_to_homepod():
     # Discover Apple TV devices on the network
     atvs = await pyatv.scan(loop,identifier="024203835863")
     homepod = atvs[0]
-    print(f"- Name: {homepod.name} - IP:{homepod.address}")
+    logging.info(f"✅ HomePod online - Name: {homepod.name} - IP:{homepod.address}")
 
     if not atvs:
-        print("HomePod is not detected on the network.")
+        logging.error("❌ HomePod is not detected on the network")
         return
 
     # Connect to the first discovered device
@@ -20,7 +24,7 @@ async def cast_music_to_homepod():
     try:
         # Play a music URL on the device
         await atv.stream.stream_file("https://www.gurutux.com/media/Athan.mp3")
-        print("Music is now playing on the Apple HomePod.")
+        logging.info(f"✅ File is now playing on {homepod.name} - IP:{homepod.address}")
     finally:
         # Disconnect from the device
         atv.close()  # No need to await this call
