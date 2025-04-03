@@ -248,7 +248,7 @@ class PrayerTimesFetcher:
 
         if next_prayer:
             logging.info(f"Next prayer is {next_prayer} at {next_prayer_time}.")
-            return {"prayer": next_prayer, "prayer_time": next_prayer_time.strftime("%Y-%m-%d %H:%M:%S %Z%z")}
+            return {"prayer": next_prayer, "prayer_time": next_prayer_time.strftime("%Y-%m-%d %H:%M:%S %z")}
         logging.info("No future prayers found for the current day.")
         return None
 
@@ -278,7 +278,7 @@ class PrayerTimesFetcher:
 
         if first_prayer:
             logging.info(f"First prayer for the next day is {first_prayer} at {first_prayer_time}.")
-            return {"prayer": first_prayer, "prayer_time": first_prayer_time.strftime("%Y-%m-%d %H:%M:%S %Z%z")}
+            return {"prayer": first_prayer, "prayer_time": first_prayer_time.strftime("%Y-%m-%d %H:%M:%S %z")}
         logging.warning("No prayers found for the next day.")
         return None
     
