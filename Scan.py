@@ -17,7 +17,7 @@ async def scan_for_devices():
     devices = [atv for atv in atvs]
 
     if not devices:
-        logging.error("❌ No Apple devices found on the network")
+        logging.error("❌ No Apple devices found on the network.")
     else:
         logging.info("✅ Found the following Apple devices:")
         table_data = [[idx + 1, str(device)] for idx, device in enumerate(devices)]
