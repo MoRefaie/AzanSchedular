@@ -20,11 +20,13 @@ class AzanScheduler:
         """
         self.fetcher = PrayerTimesFetcher()
         self.manager = AppleManager()
+        self.default_timetable = os.getenv("DEFAULT_TIMETABLE")  # Default timetable
         self.devices = json.loads(os.getenv("DEVICES")) # List of device identifiers from .env
-        self.short_azan_switch = json.loads(os.getenv("SHORT_AZAN_SWITCHES"))
-        self.azan_file_short = f"{os.getcwd()}\\media\\{os.getenv("SHORT_AZAN_FILE")}"  # Short Azan file
-        self.azan_file_fajr = f"{os.getcwd()}\\media\\{os.getenv("FAJR_AZAN_FILE")}"  # Fajr Azan file
-        self.azan_file_regular = f"{os.getcwd()}\\media\\{os.getenv("REGULAR_AZAN_FILE")}"  # Regular Azan file
+        self.short_azan_switch = json.loads(os.getenv("SHORT_AZAN_SWITCHES"))   # Dictionary of prayer names and their short azan status
+        self.media_folder = os.getenv("MEDIA_FOLDER")   # Media folder path
+        self.azan_file_short = os.path.join(os.getcwd(), self.media_folder, os.getenv('SHORT_AZAN_FILE'))  # Short Azan file
+        self.azan_file_fajr = os.path.join(os.getcwd(), self.media_folder, os.getenv('FAJR_AZAN_FILE'))  # Fajr Azan file
+        self.azan_file_regular = os.path.join(os.getcwd(), self.media_folder, os.getenv('REGULAR_AZAN_FILE'))  # Regular Azan file
 
     async def _play_azan(self, prayer_name):
         """
@@ -46,7 +48,7 @@ class AzanScheduler:
         """
         while True:
             # Fetch the next prayer
-            next_prayer = self.fetcher.fetch_prayer_times()
+            next_prayer = self.fetcher.fetch_prayer_times(self.default_timetable)
             if "error" in next_prayer:
                 logging.error(f"❌ Error fetching prayer times: {next_prayer['error']}")
                 await asyncio.sleep(60)  # Retry after 1 minute
@@ -54,7 +56,6 @@ class AzanScheduler:
 
             prayer_name = next_prayer["prayer"]
             prayer_time_str = next_prayer["prayer_time"]
-            print(prayer_time_str)
             prayer_time = datetime.strptime(prayer_time_str, "%Y-%m-%d %H:%M:%S %z")
 
             # Calculate the sleep duration

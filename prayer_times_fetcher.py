@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 import re
 import tempfile
 from tenacity import retry, stop_after_attempt, wait_fixed
+import time
 
 # Load environment variables from .env file
 load_dotenv()
@@ -25,123 +26,195 @@ class PrayerTimesFetcher:
         self.sources = {
             "icci": os.getenv("ICCI_API_URL"),
             "naas": os.getenv("NAAS_WEB_URL")
-        }
-        self.naas_prayers_timetable_file = os.getenv("NAAS_TIMETABLE_FILE")
-        self.icci_timetable_file = os.getenv("ICCI_TIMETABLE_FILE")
-        self.tz = tz.gettz(os.getenv("TIMEZONE"))
-
-        # Load prayer switches from the .env file
-        prayer_switches_json = os.getenv("PRAYER_SWITCHES")
-        self.prayer_switches = json.loads(prayer_switches_json)
+        }   # API URLs for ICCI and Naas
+        self.config_folder= os.getenv("CONFIG_FOLDER")  # Configuration folder path
+        self.icci_timetable_file = os.path.join(self.config_folder, os.getenv("ICCI_TIMETABLE_FILE"))  # ICCI timetable file path
+        self.naas_prayers_timetable_file = os.path.join(self.config_folder, os.getenv("NAAS_TIMETABLE_FILE"))  # Naas timetable file path
+        self.tz = tz.gettz(os.getenv("TIMEZONE"))   # Timezone setting
+        prayer_switches_json = os.getenv("PRAYER_SWITCHES")    # JSON string for prayer switches
+        self.prayer_switches = json.loads(prayer_switches_json) # Dictionary of prayer switch status
 
         if self.tz is None:
             raise ValueError("Timezone could not be initialized. Check your timezone configuration.")
 
+    # Download the timetable for Location
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
-    def _download_icci_timetable(self):
+    def _download_timetable(self, location):
         """
-        Fetches and saves the ICCI prayer timetable from the API.
+        Downloads the timetable for the specified location ('icci' or 'naas').
         """
-        logging.debug("Attempting to download ICCI timetable.")
+        logging.debug(f"Attempting to download {location.upper()} timetable.")
         try:
-            response = requests.get(self.sources['icci'], timeout=10)
-            response.raise_for_status()  # Raise error if response is not successful
-            with tempfile.NamedTemporaryFile("w", delete=False, dir=os.path.dirname(self.icci_timetable_file)) as temp_file:
-                json.dump(response.json(), temp_file, indent=4)
-                temp_filename = temp_file.name
-            os.replace(temp_filename, self.icci_timetable_file)
-            logging.info("✅ ICCI timetable downloaded and saved successfully.")
-            return True
-        except requests.RequestException as e:
-            logging.error(f"❌ Failed to download ICCI timetable: {e}.")
-            return False
-    
-    def _download_naas_timetable(self):
-        """
-        Fetches prayer timetable data for Naas using web scraping.
-        Extracts 'calendar' data from the webpage and saves it to a JSON file.
-        """
-        logging.debug("Attempting to download Naas timetable from Mawaqit.")
-        try:
-            response = requests.get(self.sources['naas'], timeout=10)
-            response.raise_for_status()
-            soup = BeautifulSoup(response.text, "html.parser")
-            script_tags = soup.find_all("script")
-
-            calendar_data = None
-            for script in script_tags:
-                if "calendar" in script.text:
-                    match = re.search(r'"calendar"\s*:\s*(\[\{.*?\}\])', script.text, re.DOTALL)
-                    if match:
-                        calendar_data = match.group(1)
-                    break  # Stop searching once we find the calendar data
-            
-            if not calendar_data:
-                logging.error(f"❌ Calendar data not found in Naas webpage. Response snippet: {response.text[:500]}")
+            if location == "icci":
+                response = requests.get(self.sources['icci'], timeout=10)
+                response.raise_for_status()
+                data = response.json()
+                file_path = self.icci_timetable_file
+            elif location == "naas":
+                response = requests.get(self.sources['naas'], timeout=10)
+                response.raise_for_status()
+                soup = BeautifulSoup(response.text, "html.parser")
+                script_tags = soup.find_all("script")
+                calendar_data = None
+                for script in script_tags:
+                    if "calendar" in script.text:
+                        match = re.search(r'"calendar"\s*:\s*(\[\{.*?\}\])', script.text, re.DOTALL)
+                        if match:
+                            calendar_data = match.group(1)
+                        break
+                if not calendar_data:
+                    logging.error(f"❌ Calendar data not found in Naas webpage.")
+                    return False
+                data = json.loads(calendar_data)
+                file_path = self.naas_prayers_timetable_file
+            else:
+                logging.error(f"Invalid location: {location}")
                 return False
 
-            calendar_list = json.loads(calendar_data)
-            with open(self.naas_prayers_timetable_file, "w", encoding="utf-8") as file:
-                json.dump(calendar_list, file, indent=2, ensure_ascii=False)
-
-            logging.info("✅ Naas prayer timetable saved successfully.")
+            with open(file_path, "w", encoding="utf-8") as file:
+                json.dump(data, file, indent=4, ensure_ascii=False)
+            logging.info(f"✅ {location.upper()} timetable downloaded and saved successfully.")
             return True
-        except requests.RequestException as e:
-            logging.error(f"❌ Error fetching Naas data: {e}.")
-            return False
-        except json.JSONDecodeError as e:
-            logging.error(f"❌ Error parsing Naas JSON: {e}.")
+        except (requests.RequestException, json.JSONDecodeError) as e:
+            logging.error(f"❌ Failed to download {location.upper()} timetable: {e}.")
             return False
 
-    def _is_new_month(self):
+    # Refresh the timetable for Location
+    def _refresh_timetable(self, location):
         """
-        Determines if the timetable should be refreshed by checking if a new month has started.
-        Also, checks if timetable files exist.
+        Refreshes the timetable for the specified location.
         """
-        logging.debug("Checking if a new month has started or timetable files are missing.")
-        if not os.path.exists(self.icci_timetable_file) or not os.path.exists(self.naas_prayers_timetable_file):
-            logging.info("One or both timetable files are missing. Need to download new ones.")
-            return True  # Need to download a new timetable
+        return self._download_timetable(location)
 
+    # Reload the timetable data from the file
+    def _reload_data(self, location):
+        """
+        Reloads the timetable data from the file for the specified location.
+        """
+        file_path = self.icci_timetable_file if location == "icci" else self.naas_prayers_timetable_file
         try:
-            file_mod_time = datetime.fromtimestamp(os.path.getmtime(self.icci_timetable_file))
-            current_month = datetime.today().month
-            current_month_text = datetime.today().strftime("%B %Y")
-            is_new_month = file_mod_time.month != current_month
-            logging.debug(f"Timetable last modified in month: {file_mod_time.month}, Current month: {current_month_text}.")
-            return is_new_month
-        except Exception as e:
-            logging.error(f"Error reading timetable file modification date for {self.icci_timetable_file}: {e}.")
-            return True  # If any error occurs, assume we need to re-download
-
-    def fetch_prayer_times(self, location: str = 'icci'):
-        """
-        Fetches today's prayer times for the specified location ('naas' or 'icci').
-        If it's a new month, it downloads a fresh timetable.
-        """
-        if location not in {"naas", "icci"}:
-            logging.error(f"Invalid location provided: {location}.")
-            raise ValueError("Invalid location. Choose either 'naas' or 'icci'.")
-
-        if self._is_new_month():
-            logging.info("New month detected. Downloading updated timetables.")
-            if not self._download_icci_timetable() or not self._download_naas_timetable():
-                return {"error": "Failed to download prayer timetable."}
-
-        filename = self.icci_timetable_file if location == "icci" else self.naas_prayers_timetable_file
-        if not os.path.exists(filename):
-            logging.error(f"{location.upper()} timetable file not found.")
-            return {"error": f"{location.upper()} timetable file not found."}
-
-        try:
-            with open(filename, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            return self._extract_next_prayer(data, location)
-        except (json.JSONDecodeError, KeyError) as e:
+            with open(file_path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
             logging.error(f"Error loading {location.upper()} timetable: {e}.")
-            return {"error": f"Failed to load {location.upper()} timetable."}
+            return None
 
+    # Wait until midnight
+    def _wait_until_midnight(self):
+        """
+        Sleeps until midnight.
+        """
+        now = datetime.now(self.tz)
+        midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+        seconds_until_midnight = (midnight - now).total_seconds()
+        logging.info(f"Sleeping for {seconds_until_midnight} seconds until midnight.")
+        time.sleep(seconds_until_midnight)
 
+    # Get prayer times for a specific day
+    def _get_day_prayers(self, data, day, month, date_text, location):
+        """
+        Fetches prayer times for a specific day and month from the timetable data.
+        If the day is missing, attempts to refresh the timetable once.
+        If still missing, waits until the end of the day to retry refreshing.
+        """
+        if "timetable" not in data or month not in data["timetable"] or day not in data["timetable"][month]:
+            logging.warning(f"{location.upper()} data missing for {date_text}. Attempting to refresh the timetable.")
+            if not self._refresh_timetable(location):
+                self._wait_until_midnight()
+                if not self._refresh_timetable(location):
+                    logging.error(f"{location.upper()} data for {date_text} is still missing after retry. Giving up.")
+                    return {"error": f"{location.upper()} data missing for {date_text}. Please check the timetable source."}
+            data = self._reload_data(location)
+            if not data or "timetable" not in data or month not in data["timetable"] or day not in data["timetable"][month]:
+                logging.error(f"{location.upper()} data for {date_text} is still missing after retry. Giving up.")
+                return {"error": f"{location.upper()} data missing for {date_text}. Please check the timetable source."}
+        return self._extract_day_prayers(data, day, month, date_text, location)
+
+    # Extract prayer times for a specific day
+    def _extract_day_prayers(self, data, day, month, date_text, location):
+        """
+        Extracts and validates prayer times for a specific day.
+        """
+        day_prayers = data["timetable"][month][day]
+        if len(day_prayers) < 6:
+            logging.error(f"Invalid prayer data for {location.upper()} on {date_text}: {day_prayers}")
+            return {"error": f"Invalid prayer data for {location.upper()} on {date_text}"}
+        return {
+            "Fajr": f"{day_prayers[0][0]:02}:{day_prayers[0][1]:02}",
+            "Sunrise": f"{day_prayers[1][0]:02}:{day_prayers[1][1]:02}",
+            "Dhuhr": f"{day_prayers[2][0]:02}:{day_prayers[2][1]:02}",
+            "Asr": f"{day_prayers[3][0]:02}:{day_prayers[3][1]:02}",
+            "Maghrib": f"{day_prayers[4][0]:02}:{day_prayers[4][1]:02}",
+            "Isha": f"{day_prayers[5][0]:02}:{day_prayers[5][1]:02}"
+        }
+
+    # Find the next prayer time
+    def _find_next_prayer(self, current_time, day_prayers_times):
+        """
+        Finds the next prayer time for the current day, considering the prayer switches.
+        """
+        logging.debug("Finding the next prayer for the current day.")
+        next_prayer = None
+        next_prayer_time = None
+
+        for prayer, time_str in day_prayers_times.items():
+            # Skip prayers that are disabled in the switches
+            if self.prayer_switches.get(prayer, "Off") == "Off":
+                logging.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
+                continue
+
+            try:
+                prayer_time = datetime.strptime(time_str, "%H:%M").replace(
+                    year=current_time.year, month=current_time.month, day=current_time.day, tzinfo=self.tz
+                )
+            except ValueError as e:
+                logging.error(f"Invalid time format for prayer {prayer}: {time_str}. Error: {e}")
+                continue
+
+            logging.debug(f"Checking prayer {prayer} at {prayer_time}.")
+            if prayer_time > current_time:
+                if next_prayer_time is None or prayer_time < next_prayer_time:
+                    next_prayer = prayer
+                    next_prayer_time = prayer_time
+                    logging.debug(f"Next prayer updated to {prayer} at {prayer_time}.")
+
+        if next_prayer:
+            logging.info(f"Next prayer is {next_prayer} at {next_prayer_time}.")
+            return {"prayer": next_prayer, "prayer_time": next_prayer_time.strftime("%Y-%m-%d %H:%M:%S %z")}
+        logging.info("No future prayers found for the current day.")
+        return None
+
+    # Find the first prayer time for the next day
+    def _find_first_prayer(self, next_day_date, next_day_prayers_times):
+        """
+        Finds the first prayer time for the next day, considering the prayer switches.
+        """
+        logging.debug("Finding the first prayer for the next day.")
+        first_prayer = None
+        first_prayer_time = None
+
+        for prayer, time_str in next_day_prayers_times.items():
+            # Skip prayers that are disabled in the switches
+            if self.prayer_switches.get(prayer, "Off") == "Off":
+                logging.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
+                continue
+
+            prayer_time = datetime.strptime(time_str, "%H:%M").replace(
+                year=next_day_date.year, month=next_day_date.month, day=next_day_date.day, tzinfo=self.tz
+            )
+            logging.debug(f"Checking prayer {prayer} at {prayer_time}.")
+            if first_prayer_time is None or prayer_time < first_prayer_time:
+                first_prayer = prayer
+                first_prayer_time = prayer_time
+                logging.debug(f"First prayer updated to {prayer} at {prayer_time}.")
+
+        if first_prayer:
+            logging.info(f"First prayer for the next day is {first_prayer} at {first_prayer_time}.")
+            return {"prayer": first_prayer, "prayer_time": first_prayer_time.strftime("%Y-%m-%d %H:%M:%S %z")}
+        logging.warning("No prayers found for the next day.")
+        return None
+
+    # Extract the next prayer time    
     def _extract_next_prayer(self, data, location: str):
         """
         Extracts the next prayer time from the provided timetable data.
@@ -192,95 +265,64 @@ class PrayerTimesFetcher:
             logging.error("Naas prayer data handling for next day is not implemented.")
             return {"error": "Naas prayer data handling for next day is not implemented."}
 
-    # Helper function to validate and fetch prayer times for a specific day
-    def _get_day_prayers(self, data, day, month, date_text, location):
+    # Check if the current month is new
+    def _is_new_month(self, data):
         """
-        Fetches prayer times for a specific day and month from the timetable data.
+        Checks if the current month is a new month compared to the timetable data.
         """
-        logging.debug(f"Fetching prayer times for {location.upper()} on {date_text}.")
-        if "timetable" not in data or month not in data["timetable"] or day not in data["timetable"][month]:
-            logging.warning(f"{location.upper()} data missing for {date_text}.")
-            return {"error": f"{location.upper()} data missing for {date_text}"}
+        today_month = str(datetime.now(self.tz).month)
+        if "timetable" not in data or today_month not in data["timetable"]:
+            logging.info("It is a new month. Timetable needs to be refreshed.")
+            return True
+        return False
 
-        day_prayers = data["timetable"][month][day]
-        if len(day_prayers) < 6:
-            logging.error(f"Invalid prayer data for {location.upper()} on {date_text}: {day_prayers}")
-            return {"error": f"Invalid prayer data for {location.upper()} on {date_text}"}
-        logging.debug(f"Prayer times for {location.upper()} on {date_text}: {day_prayers}.")
-        return {
-            "Fajr": f"{day_prayers[0][0]:02}:{day_prayers[0][1]:02}",
-            "Sunrise": f"{day_prayers[1][0]:02}:{day_prayers[1][1]:02}",
-            "Dhuhr": f"{day_prayers[2][0]:02}:{day_prayers[2][1]:02}",
-            "Asr": f"{day_prayers[3][0]:02}:{day_prayers[3][1]:02}",
-            "Maghrib": f"{day_prayers[4][0]:02}:{day_prayers[4][1]:02}",
-            "Isha": f"{day_prayers[5][0]:02}:{day_prayers[5][1]:02}"
-        }
-
-    # Helper function to find the next prayer for a given day
-    def _find_next_prayer(self, current_time, day_prayers_times):
+    # Check if the file is outdated
+    def _is_file_outdated(self, file_path):
         """
-        Finds the next prayer time for the current day, considering the prayer switches.
+        Checks if the file's creation or last modification date is in the current month
+        or the last day of the previous month.
         """
-        logging.debug("Finding the next prayer for the current day.")
-        next_prayer = None
-        next_prayer_time = None
+        try:
+            # Get the file's last modification time
+            file_mod_time = datetime.fromtimestamp(os.path.getmtime(file_path), tz=self.tz)
+            today = datetime.now(self.tz)
+            last_day_of_previous_month = today.replace(day=1)  + timedelta(days=1)
+  
+            # Check if the file was modified in the current month or on the last day of the previous month
+            if file_mod_time >= last_day_of_previous_month:
+                return False  # File is up-to-date
+            return True  # File is outdated
+        except FileNotFoundError:
+            logging.warning(f"File {file_path} not found. It will be treated as outdated.")
+            return True  # Treat missing file as outdated
 
-        for prayer, time_str in day_prayers_times.items():
-            # Skip prayers that are disabled in the switches
-            if self.prayer_switches.get(prayer, "Off") == "Off":
-                logging.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
-                continue
-
-            try:
-                prayer_time = datetime.strptime(time_str, "%H:%M").replace(
-                    year=current_time.year, month=current_time.month, day=current_time.day, tzinfo=self.tz
-                )
-            except ValueError as e:
-                logging.error(f"Invalid time format for prayer {prayer}: {time_str}. Error: {e}")
-                continue
-
-            logging.debug(f"Checking prayer {prayer} at {prayer_time}.")
-            if prayer_time > current_time:
-                if next_prayer_time is None or prayer_time < next_prayer_time:
-                    next_prayer = prayer
-                    next_prayer_time = prayer_time
-                    logging.debug(f"Next prayer updated to {prayer} at {prayer_time}.")
-
-        if next_prayer:
-            logging.info(f"Next prayer is {next_prayer} at {next_prayer_time}.")
-            return {"prayer": next_prayer, "prayer_time": next_prayer_time.strftime("%Y-%m-%d %H:%M:%S %z")}
-        logging.info("No future prayers found for the current day.")
-        return None
-
-    # Helper function to find the first prayer for the next day
-    def _find_first_prayer(self, next_day_date, next_day_prayers_times):
+    # Fetch prayer times for a specific location
+    def fetch_prayer_times(self, location):
         """
-        Finds the first prayer time for the next day, considering the prayer switches.
+        Fetches today's prayer times for the specified location ('naas' or 'icci').
+        Refreshes the timetable if it is a new month, if the data is missing, or if the file is outdated.
         """
-        logging.debug("Finding the first prayer for the next day.")
-        first_prayer = None
-        first_prayer_time = None
+        if location not in {"naas", "icci"}:
+            logging.error(f"Invalid location provided: {location}.")
+            raise ValueError("Invalid location. Choose either 'naas' or 'icci'.")
 
-        for prayer, time_str in next_day_prayers_times.items():
-            # Skip prayers that are disabled in the switches
-            if self.prayer_switches.get(prayer, "Off") == "Off":
-                logging.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
-                continue
+        file_path = self.icci_timetable_file if location == "icci" else self.naas_prayers_timetable_file
 
-            prayer_time = datetime.strptime(time_str, "%H:%M").replace(
-                year=next_day_date.year, month=next_day_date.month, day=next_day_date.day, tzinfo=self.tz
-            )
-            logging.debug(f"Checking prayer {prayer} at {prayer_time}.")
-            if first_prayer_time is None or prayer_time < first_prayer_time:
-                first_prayer = prayer
-                first_prayer_time = prayer_time
-                logging.debug(f"First prayer updated to {prayer} at {prayer_time}.")
+        # Check if the file is outdated
+        if self._is_file_outdated(file_path):
+            logging.info(f"The timetable file for {location.upper()} is outdated. Refreshing it.")
+            if not self._refresh_timetable(location):
+                return {"error": f"Failed to load or refresh {location.upper()} timetable."}
 
-        if first_prayer:
-            logging.info(f"First prayer for the next day is {first_prayer} at {first_prayer_time}.")
-            return {"prayer": first_prayer, "prayer_time": first_prayer_time.strftime("%Y-%m-%d %H:%M:%S %z")}
-        logging.warning("No prayers found for the next day.")
-        return None
+        # Reload data from the file
+        data = self._reload_data(location)
+        if not data or self._is_new_month(data):
+            logging.info(f"Refreshing timetable for {location.upper()} due to new month or missing data.")
+            if not self._refresh_timetable(location):
+                return {"error": f"Failed to load or refresh {location.upper()} timetable."}
+            data = self._reload_data(location)
+
+        return self._extract_next_prayer(data, location)
     
 # Example usage
 if __name__ == "__main__":

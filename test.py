@@ -10,6 +10,7 @@ import os
 import asyncio
 import logging
 import json
+import time
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from prayer_times_fetcher import PrayerTimesFetcher
@@ -17,11 +18,9 @@ from apple_manager import AppleManager
 
 # Load environment variables from .env file
 load_dotenv()
+x=0
+while x < 10:
+    x=x+1
+    print(f'{x}:{os.getenv("TEST")}')
+    time.sleep(1)
 
-devices = json.loads(os.getenv("DEVICES"))
-print(os.getcwd())
-manager = AppleManager()
-file_to_play = f"{os.getcwd()}\media\ShortAthan.mp3"
-
-
-asyncio.run(manager.announce(file_to_play, devices))

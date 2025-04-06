@@ -1,6 +1,6 @@
 {
     "name": "<h5>Assalamu Alaikum!</h5><br />",
-    "description": "<h5>\u0627\u062f\u0652\u0639\u064f \u0625\u0650\u0644\u0650\u0649 \u0633\u064e\u0628\u0650\u064a\u0644\u0650 \u0631\u064e\u0628\u0650\u0651\u0643\u064e \u0628\u0650\u0627\u0644\u0652\u062d\u0650\u0643\u0652\u0645\u064e\u0629\u0650 \u0648\u064e\u0627\u0644\u0652\u0645\u064e\u0648\u0652\u0639\u0650\u0638\u064e\u0629\u0650 \u0627\u0644\u0652\u062d\u064e\u0633\u064e\u0646\u064e\u0629\u0650</h5><h5>'Invite to the way of your Lord with wisdom and fair preaching'</h5><h5>(The Holy Qur'an, 16:125)</h5><br /><p>We at the Islamic Cultural Centre of Ireland are delighted to offer you this free prayer timetable app, developed especially for the Muslims in Ireland.</p><p>In addition to the daily prayer times, including the iqamah times for the communal prayers in the mosque, the app also includes a daily hadith as well as news and updates from the Centre.</p><p>The Centre itself is located in the south Dublin, next to University College Dublin and close to the Dundrum and Stillorgan, popular shopping locations and convenient to the tram and bus routes. Serving large and diverse Muslim community, the Centre offers facilities and activities not only for the Muslims but also non-Muslim and neighbourhood community where all are warmly welcomed.</p><p>For more information about the Islamic Cultural Centre of Ireland please visit www.islamireland.ie</p><p>The app is meticulously updated on a regular basis by FarendNet Ltd on behalf of the Centre, in order to ensure reliability, consistency as well as new features and updates.</p><p>If you like the App and the progress we are making, please show us your support by submitting a review on the App Store. Your review will help us improve the App in'sha Allah.</p>",
+    "description": "<h5>ادْعُ إِلِى سَبِيلِ رَبِّكَ بِالْحِكْمَةِ وَالْمَوْعِظَةِ الْحَسَنَةِ</h5><h5>'Invite to the way of your Lord with wisdom and fair preaching'</h5><h5>(The Holy Qur'an, 16:125)</h5><br /><p>We at the Islamic Cultural Centre of Ireland are delighted to offer you this free prayer timetable app, developed especially for the Muslims in Ireland.</p><p>In addition to the daily prayer times, including the iqamah times for the communal prayers in the mosque, the app also includes a daily hadith as well as news and updates from the Centre.</p><p>The Centre itself is located in the south Dublin, next to University College Dublin and close to the Dundrum and Stillorgan, popular shopping locations and convenient to the tram and bus routes. Serving large and diverse Muslim community, the Centre offers facilities and activities not only for the Muslims but also non-Muslim and neighbourhood community where all are warmly welcomed.</p><p>For more information about the Islamic Cultural Centre of Ireland please visit www.islamireland.ie</p><p>The app is meticulously updated on a regular basis by FarendNet Ltd on behalf of the Centre, in order to ensure reliability, consistency as well as new features and updates.</p><p>If you like the App and the progress we are making, please show us your support by submitting a review on the App Store. Your review will help us improve the App in'sha Allah.</p>",
     "settings": {
         "title": "Islamic Cultural Centre of Ireland",
         "city": "dublin",
@@ -8,7 +8,7 @@
         "announcement": "Ramadan Kareem!",
         "text": {
             "en": "Messenger of Allah (PBUH) said, \\\\\"Allah does not look at your figures, nor at your attire but He looks at your hearts and accomplishments\\\\\" [Muslim].",
-            "ar": "\u0642\u0627\u0644 \u0631\u0633\u0648\u0644 \u0627\u0644\u0644\u0647 \u0635\u0644\u0649  \u0639\u0644\u064a\u0647 \u0648\u0633\u0644\u0645: \u0625\u0646 \u0627\u0644\u0644\u0647 \u0644\u0627 \u064a\u0646\u0638\u0631 \u0625\u0644\u0649 \u0623\u062c\u0633\u0627\u0645\u0643\u0645 \u0648\u0644\u0627 \u0625\u0644\u0649 \u0635\u0648\u0631\u0643\u0645 \u0648\u0644\u0643\u0646 \u064a\u0646\u0638\u0631 \u0625\u0644\u0649 \u0642\u0644\u0648\u0628\u0643\u0645 \u0648\u0623\u0639\u0645\u0627\u0644\u0643\u0645. \u0631\u0648\u0627\u0647 \u0645\u0633\u0644\u0645"
+            "ar": "قال رسول الله صلى  عليه وسلم: إن الله لا ينظر إلى أجسامكم ولا إلى صوركم ولكن ينظر إلى قلوبكم وأعمالكم. رواه مسلم"
         },
         "jummuahtime": "13:15",
         "join": "0",
@@ -2513,8 +2513,8 @@
                     4
                 ],
                 [
-                    22,
-                    21
+                    21,
+                    37
                 ]
             ],
             "4": [

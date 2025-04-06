@@ -1,0 +1,6 @@
+beautifulsoup4
+pyatv
+python-dotenv
+python_dateutil
+Requests
+tenacity
