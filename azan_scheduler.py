@@ -33,6 +33,7 @@ class AzanScheduler:
         azan_file_short = os.path.join(os.getcwd(), media_folder, os.getenv('SHORT_AZAN_FILE'))
         azan_file_fajr = os.path.join(os.getcwd(), media_folder, os.getenv('FAJR_AZAN_FILE'))
         azan_file_regular = os.path.join(os.getcwd(), media_folder, os.getenv('REGULAR_AZAN_FILE'))
+        audio_volume = float(os.getenv("AUDIO_VOLUME"))  # Default audio volume level (0.0 to 1.0)
 
         # Check if Azan is enabled for the prayer
         azan_enabled = azan_switches.get(prayer_name)
@@ -46,7 +47,7 @@ class AzanScheduler:
                 azan_file = azan_file_fajr if prayer_name.lower() == "fajr" else azan_file_regular
                 logging.info(f"📢 Playing Azan for {prayer_name} using file: {azan_file}")
 
-            await self.manager.announce(azan_file, devices)
+            await self.manager.announce(azan_file, devices,audio_volume)
         else:
             logging.info(f"🔕 Azan for {prayer_name} is disabled in the configuration.")
 

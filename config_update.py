@@ -112,6 +112,17 @@ class ConfigUpdater:
                     }
                     continue
 
+            # Validate AUDIO_VOLUME to be a float between 0.0 and 1.0
+            if key == "AUDIO_VOLUME":
+                try:
+                    volume = float(value)
+                    if not (0.0 <= volume <= 1.0):
+                        raise ValueError
+                except ValueError:
+                    logging.error(f"❌ Key '{key}' must be a float between 0.0 and 1.0.")
+                    status[key] = {"status": "fail", "message": f"Key '{key}' must be a float between 0.0 and 1.0."}
+                    continue
+
             # Ensure DEVICES is always a list
             if key == "DEVICES":
                 if not isinstance(value, list):

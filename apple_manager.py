@@ -21,21 +21,31 @@ class AppleManager:
         logging.info(f"✅ Device found - Name: {atvs[0].name} - IP: {atvs[0].address}")
         return atvs[0]
 
-    async def _play_file(self, loop, device, file_path):
+    async def _play_file(self, loop, device, file_path, volume):
         """
-        Connects to the device and plays the specified file.
+        Connects to the device and plays the specified file with the given volume.
+
+        Args:
+            loop (asyncio.AbstractEventLoop): The event loop.
+            device (pyatv.interface.AppleTV): The Apple TV device to play the file on.
+            file_path (str): The path of the file to play.
+            volume (float): The volume level (0.0 to 1.0). Default is 1.0 (maximum volume).
         """
         logging.info(f"🎵 Connecting to device: {device.name} - IP: {device.address}")
-        atv = await pyatv.connect(device, loop)
+        atv = None
         try:
-            logging.info(f"✅ File is now playing on {device.name} - IP: {device.address}")
+            atv = await pyatv.connect(device, loop)
+            logging.info(f"✅ File is now playing on {device.name} - IP: {device.address} at volume {volume}")
             with io.open(file_path, "rb") as audio_file:
-                await atv.stream.stream_file(audio_file)
+                await atv.stream.stream_file(audio_file, volume)
             logging.info(f"✅ File is done playing on {device.name} - IP: {device.address}")
+        except Exception as e:
+            logging.error(f"❌ Error while playing file on {device.name}: {e}")
         finally:
-            atv.close()
+            if atv:
+                atv.close()
 
-    async def announce(self, file_path, device_identifiers):
+    async def announce(self, file_path, device_identifiers,volume):
         """
         Announces a file on the specified devices.
 
@@ -48,7 +58,7 @@ class AppleManager:
             loop = asyncio.get_event_loop()
             device = await self._discover_device(loop,identifier)
             if device:
-                tasks.append(self._play_file(loop, device, file_path))
+                tasks.append(self._play_file(loop, device, file_path,volume))
 
         if tasks:
             await asyncio.gather(*tasks)
@@ -134,5 +144,6 @@ if __name__ == "__main__":
     manager = AppleManager()
     file_to_play = "C:\\Dev\\IEPrayer\\media\\Fajr_Azan.mp3"
     devices = ["024203835863", "123456789012"]  # Replace with actual device identifiers
-    asyncio.run(manager.announce(file_to_play, devices))
+    volume = 0.4  # Set the desired volume level (0.0 to 1.0)
+    asyncio.run(manager.announce(file_to_play, devices,volume))
     devices = asyncio.run(manager.scan_for_devices())
