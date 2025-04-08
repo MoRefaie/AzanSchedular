@@ -19,39 +19,38 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 
 
 class PrayerTimesFetcher:
-    def __init__(self):
+    def _get_timezone(self):
         """
-        Initializes the prayer time fetcher with sources, file paths, timezone settings, and prayer switches.
+        Dynamically fetches the timezone from the environment.
         """
-        self.sources = {
-            "icci": os.getenv("ICCI_API_URL"),
-            "naas": os.getenv("NAAS_WEB_URL")
-        }   # API URLs for ICCI and Naas
-        self.config_folder= os.getenv("CONFIG_FOLDER")  # Configuration folder path
-        self.icci_timetable_file = os.path.join(self.config_folder, os.getenv("ICCI_TIMETABLE_FILE"))  # ICCI timetable file path
-        self.naas_prayers_timetable_file = os.path.join(self.config_folder, os.getenv("NAAS_TIMETABLE_FILE"))  # Naas timetable file path
-        self.tz = tz.gettz(os.getenv("TIMEZONE"))   # Timezone setting
-        prayer_switches_json = os.getenv("PRAYER_SWITCHES")    # JSON string for prayer switches
-        self.prayer_switches = json.loads(prayer_switches_json) # Dictionary of prayer switch status
-
-        if self.tz is None:
-            raise ValueError("Timezone could not be initialized. Check your timezone configuration.")
-
+        timezone = os.getenv("TIMEZONE")
+        tz_info = tz.gettz(timezone)
+        if tz_info is None:
+            raise ValueError(f"Invalid timezone: {timezone}")
+        return tz_info
+    
     # Download the timetable for Location
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     def _download_timetable(self, location):
         """
         Downloads the timetable for the specified location ('icci' or 'naas').
         """
+        sources_url = {
+            "icci": os.getenv("ICCI_API_URL"),
+            "naas": os.getenv("NAAS_WEB_URL")
+        }   # API URLs for ICCI and Naas
+        icci_timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), os.getenv("ICCI_TIMETABLE_FILE"))  # ICCI timetable file path
+        naas_prayers_timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), os.getenv("NAAS_TIMETABLE_FILE"))  # Naas timetable file path
+
         logging.debug(f"Attempting to download {location.upper()} timetable.")
         try:
             if location == "icci":
-                response = requests.get(self.sources['icci'], timeout=10)
+                response = requests.get(sources_url['icci'], timeout=10)
                 response.raise_for_status()
                 data = response.json()
-                file_path = self.icci_timetable_file
+                file_path = icci_timetable_file
             elif location == "naas":
-                response = requests.get(self.sources['naas'], timeout=10)
+                response = requests.get(sources_url['naas'], timeout=10)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
                 script_tags = soup.find_all("script")
@@ -66,7 +65,7 @@ class PrayerTimesFetcher:
                     logging.error(f"❌ Calendar data not found in Naas webpage.")
                     return False
                 data = json.loads(calendar_data)
-                file_path = self.naas_prayers_timetable_file
+                file_path = naas_prayers_timetable_file
             else:
                 logging.error(f"Invalid location: {location}")
                 return False
@@ -91,7 +90,10 @@ class PrayerTimesFetcher:
         """
         Reloads the timetable data from the file for the specified location.
         """
-        file_path = self.icci_timetable_file if location == "icci" else self.naas_prayers_timetable_file
+        icci_timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), os.getenv("ICCI_TIMETABLE_FILE"))  # ICCI timetable file path
+        naas_prayers_timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), os.getenv("NAAS_TIMETABLE_FILE"))  # Naas timetable file path
+
+        file_path = icci_timetable_file if location == "icci" else naas_prayers_timetable_file
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 return json.load(f)
@@ -104,7 +106,7 @@ class PrayerTimesFetcher:
         """
         Sleeps until midnight.
         """
-        now = datetime.now(self.tz)
+        now = datetime.now(self._get_timezone())
         midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
         seconds_until_midnight = (midnight - now).total_seconds()
         logging.info(f"Sleeping for {seconds_until_midnight} seconds until midnight.")
@@ -159,13 +161,9 @@ class PrayerTimesFetcher:
 
         for prayer, time_str in day_prayers_times.items():
             # Skip prayers that are disabled in the switches
-            if self.prayer_switches.get(prayer, "Off") == "Off":
-                logging.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
-                continue
-
             try:
                 prayer_time = datetime.strptime(time_str, "%H:%M").replace(
-                    year=current_time.year, month=current_time.month, day=current_time.day, tzinfo=self.tz
+                    year=current_time.year, month=current_time.month, day=current_time.day, tzinfo=self._get_timezone()
                 )
             except ValueError as e:
                 logging.error(f"Invalid time format for prayer {prayer}: {time_str}. Error: {e}")
@@ -189,18 +187,19 @@ class PrayerTimesFetcher:
         """
         Finds the first prayer time for the next day, considering the prayer switches.
         """
+        azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))     # JSON string for prayer switches
         logging.debug("Finding the first prayer for the next day.")
         first_prayer = None
         first_prayer_time = None
 
         for prayer, time_str in next_day_prayers_times.items():
             # Skip prayers that are disabled in the switches
-            if self.prayer_switches.get(prayer, "Off") == "Off":
+            if azan_switches.get(prayer, "Off") == "Off":
                 logging.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
                 continue
 
             prayer_time = datetime.strptime(time_str, "%H:%M").replace(
-                year=next_day_date.year, month=next_day_date.month, day=next_day_date.day, tzinfo=self.tz
+                year=next_day_date.year, month=next_day_date.month, day=next_day_date.day, tzinfo=self._get_timezone()
             )
             logging.debug(f"Checking prayer {prayer} at {prayer_time}.")
             if first_prayer_time is None or prayer_time < first_prayer_time:
@@ -219,7 +218,7 @@ class PrayerTimesFetcher:
         """
         Extracts the next prayer time from the provided timetable data.
         """
-        today_date = datetime.now(self.tz)
+        today_date = datetime.now(self._get_timezone())
         today_date_text = today_date.strftime("%Y-%m-%d")
         today_day = str(today_date.day)
         today_month = str(today_date.month)
@@ -270,7 +269,7 @@ class PrayerTimesFetcher:
         """
         Checks if the current month is a new month compared to the timetable data.
         """
-        today_month = str(datetime.now(self.tz).month)
+        today_month = str(datetime.now(self._get_timezone()).month)
         if "timetable" not in data or today_month not in data["timetable"]:
             logging.info("It is a new month. Timetable needs to be refreshed.")
             return True
@@ -284,8 +283,8 @@ class PrayerTimesFetcher:
         """
         try:
             # Get the file's last modification time
-            file_mod_time = datetime.fromtimestamp(os.path.getmtime(file_path), tz=self.tz)
-            today = datetime.now(self.tz)
+            file_mod_time = datetime.fromtimestamp(os.path.getmtime(file_path), tz=self._get_timezone())
+            today = datetime.now(self._get_timezone())
             last_day_of_previous_month = today.replace(day=1)  + timedelta(days=1)
   
             # Check if the file was modified in the current month or on the last day of the previous month
@@ -302,11 +301,14 @@ class PrayerTimesFetcher:
         Fetches today's prayer times for the specified location ('naas' or 'icci').
         Refreshes the timetable if it is a new month, if the data is missing, or if the file is outdated.
         """
+        icci_timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), os.getenv("ICCI_TIMETABLE_FILE"))  # ICCI timetable file path
+        naas_prayers_timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), os.getenv("NAAS_TIMETABLE_FILE"))  # Naas timetable file path
+
         if location not in {"naas", "icci"}:
             logging.error(f"Invalid location provided: {location}.")
             raise ValueError("Invalid location. Choose either 'naas' or 'icci'.")
 
-        file_path = self.icci_timetable_file if location == "icci" else self.naas_prayers_timetable_file
+        file_path = icci_timetable_file if location == "icci" else naas_prayers_timetable_file
 
         # Check if the file is outdated
         if self._is_file_outdated(file_path):
