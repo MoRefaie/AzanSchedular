@@ -130,7 +130,7 @@ class ConfigUpdater:
 
             try:
                 # Convert value to a JSON string if it's a list or dict
-                value = json.dumps(value) if isinstance(value, (list, dict)) else str(value)
+                value = json.dumps(value) if isinstance(value, (list, dict)) else f'"{value}"'
 
                 # Update the key in the .env file
                 set_key(self.env_file_path, key, value, quote_mode="never")

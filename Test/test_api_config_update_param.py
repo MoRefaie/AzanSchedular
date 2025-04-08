@@ -16,7 +16,6 @@ def simulate_config_update_param_call():
             # "AZAN_SWITCHES": {"Fajr": "On", "Sunrise": "Off", "Dhuhr": "On", "Asr": "On", "Maghrib": "On", "Isha": "On"},
             # "SHORT_AZAN_SWITCHES":{"Fajr": "Off", "Sunrise": "Off", "Dhuhr": "Off", "Asr": "Off", "Maghrib": "Off", "Isha": "Off"},
             "AUDIO_VOLUME": "0.1",
-            "TIMEZONE":"Europe/London"
         }
     }
 

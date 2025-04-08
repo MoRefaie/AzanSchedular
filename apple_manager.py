@@ -37,7 +37,7 @@ class AppleManager:
             atv = await pyatv.connect(device, loop)
             logging.info(f"✅ File is now playing on {device.name} - IP: {device.address} at volume {volume}")
             with io.open(file_path, "rb") as audio_file:
-                await atv.stream.stream_file(audio_file, volume)
+                await atv.stream.stream_file(audio_file, volume=volume)
             logging.info(f"✅ File is done playing on {device.name} - IP: {device.address}")
         except Exception as e:
             logging.error(f"❌ Error while playing file on {device.name}: {e}")
