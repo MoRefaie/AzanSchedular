@@ -29,7 +29,7 @@ class PrayerTimesFetcher:
             raise ValueError(f"Invalid timezone: {timezone}")
         return tz_info
 
-# Download the timetable for Location
+    # Download the timetable for Location
     @retry(stop=stop_after_attempt(3), wait=wait_fixed(2))
     def _download_timetable(self, location):
         """
