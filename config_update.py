@@ -35,7 +35,7 @@ class ConfigUpdater:
         )
         return bool(url_regex.match(value))
 
-    def _validate_dict(self, value, required_keys):
+    def _validate_dict_switch(self, value, required_keys):
         """
         Validates if the value is a dictionary with the required keys and values being "On" or "Off".
         """
@@ -46,19 +46,21 @@ class ConfigUpdater:
                 return False
         return True
 
+    def _validate_dict_source(self, value):
+        """
+        Validates if the value is a dictionary for sources.
+        """
+        if not isinstance(value, dict):
+            return False
+        for url in value.values():
+            if not self._validate_url(url):
+                print(f"Invalid URL: {url}")
+                return False
+        return True
+        
     def update_env_keys(self, updates: dict) -> dict:
         """
         Updates multiple keys in the .env file with the given values and returns a status for each key.
-
-        Args:
-            updates (dict): A dictionary where keys are the environment variable names
-                            and values are the new values to set.
-
-        Returns:
-            dict: A dictionary where keys are the environment variable names and values are their update status:
-                  - "updated": Successfully updated.
-                  - "not_exist": Key does not exist in the environment variables.
-                  - "fail": Failed to update the key.
         """
         status = {}
         required_prayer_keys = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"]
@@ -70,18 +72,22 @@ class ConfigUpdater:
                 status[key] = {"status": "blocked", "message": f"Key '{key}' cannot be updated."}
                 continue
 
-            # Validate ICCI_API_URL and NAAS_WEB_URL as URLs
-            if key in ["ICCI_API_URL", "NAAS_WEB_URL"]:
-                if not self._validate_url(value):
-                    logging.error(f"❌ Key '{key}' must be a valid URL.")
-                    status[key] = {"status": "fail", "message": f"Key '{key}' must be a valid URL."}
+            # Validate SOURCES as a dictionary
+            if key == "SOURCES":
+                if not self._validate_dict_source(value):
+                    logging.error(f"❌ Key '{key}' must be a dictionary where each key is a source name and each value is a valid URL.")
+                    status[key] = {"status": "fail", "message": f"Key '{key}' must be a dictionary with source names as keys and valid URLs as values."}
                     continue
 
-            # Validate DEFAULT_TIMETABLE to be "icci" or "nass"
+            # Validate DEFAULT_TIMETABLE to be a valid source key
             if key == "DEFAULT_TIMETABLE":
-                if value not in ["icci", "nass"]:
-                    logging.error(f"❌ Key '{key}' must be 'icci' or 'nass'.")
-                    status[key] = {"status": "fail", "message": f"Key '{key}' must be 'icci' or 'nass'."}
+                if "SOURCES" in updates.keys()and self._validate_dict_source(updates["SOURCES"]):
+                    sources = list(updates["SOURCES"].keys())
+                else:
+                    sources = list(json.loads(os.getenv("SOURCES")).keys())
+                if value not in sources:
+                    logging.error(f"❌ Key '{key}' must be one of the available sources: {sources}.")
+                    status[key] = {"status": "fail", "message": f"Key '{key}' must be one of the available sources: {sources}."}
                     continue
 
             # Validate TIMEZONE to be a valid timezone using dateutil.tz
@@ -95,16 +101,10 @@ class ConfigUpdater:
                     status[key] = {"status": "fail", "message": f"Key '{key}' must be a valid timezone."}
                     continue
 
-            # Validate ICCI_TIMETABLE_FILE and NAAS_TIMETABLE_FILE to be .json files
-            if key in ["ICCI_TIMETABLE_FILE", "NAAS_TIMETABLE_FILE"]:
-                if not value.endswith(".json"):
-                    logging.error(f"❌ Key '{key}' must be a .json file.")
-                    status[key] = {"status": "fail", "message": f"Key '{key}' must be a .json file."}
-                    continue
 
             # Validate AZAN_SWITCHES and SHORT_AZAN_SWITCHES to be valid dictionaries
             if key in ["AZAN_SWITCHES", "SHORT_AZAN_SWITCHES"]:
-                if not self._validate_dict(value, required_prayer_keys):
+                if not self._validate_dict_switch(value, required_prayer_keys):
                     logging.error(f"❌ Key '{key}' must be a dictionary with keys {required_prayer_keys} and values 'On' or 'Off'.")
                     status[key] = {
                         "status": "fail",
