@@ -23,7 +23,7 @@ async def cast_music_to_homepod():
     atv = await pyatv.connect(homepod, loop)
     try:
         # Set the volume to 50% before streaming
-        await atv.audio.set_volume(30.0)
+        await atv.audio.set_volume(50.0)
         logging.info(f"🔊 Volume set to 50% on {homepod.name}")
 
         # Play a music file on the device
