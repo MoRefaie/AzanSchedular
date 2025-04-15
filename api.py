@@ -4,6 +4,7 @@ import asyncio
 import logging
 from apple_manager import AppleManager
 from config_update import ConfigUpdater
+from azan_scheduler import AzanScheduler
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -11,16 +12,15 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(
 # Create a FastAPI app instance
 app = FastAPI()
 
-# Initialize the AppleManager
+# Initialize the AppleManager,ConfigUpdater and AzanScheduler
 manager = AppleManager()
-
-# Initialize the ConfigUpdater
 config_updater = ConfigUpdater()
+scheduler = AzanScheduler()
 
 class ConfigUpdateRequest(BaseModel):
     updates: dict  # A dictionary of keys and values to update in the .env file
 
-@app.get("/scan-devices")
+@app.get("/api/scan-devices")
 async def scan_devices():
     """
     API endpoint to scan for Apple TV devices on the network.
@@ -39,7 +39,7 @@ async def scan_devices():
         logging.error(f"An error occurred while scanning for devices: {e}")
         return {"status": "error", "message": str(e)}
 
-@app.post("/update-config")
+@app.post("/api/update-config")
 async def update_config(request: ConfigUpdateRequest):
     """
     API endpoint to update configuration keys in the .env file.
@@ -54,3 +54,16 @@ async def update_config(request: ConfigUpdateRequest):
     except Exception as e:
         logging.error(f"❌ Failed to update configuration: {e}")
         raise HTTPException(status_code=500, detail="Failed to update configuration.")
+
+
+@app.post("/api/restart-scheduler")
+def restart_scheduler():
+    """
+    Restart the Azan scheduler.
+    """
+    try:
+        scheduler.run()
+        return {"message": "Azan scheduler restarted successfully."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to restart scheduler: {e}")
+
