@@ -22,18 +22,13 @@ async def start_api():
 
         # Log the stdout and stderr in real-time
         logging.info("API process started. Waiting for it to be ready...")
-        async for line in process.stdout:
+        async for line in process.stderr:
             decoded_line = line.decode().strip()
             logging.info(f"API: {decoded_line}")
             # Check for a specific line indicating the API is ready
             if "Uvicorn running on" in decoded_line:
                 logging.info("API is ready.")
                 break
-        # Wait for the process to complete (optional, if you want to keep it running)
-        if process.returncode == 0:
-            logging.info("API process completed successfully.")
-        else:
-            logging.error(f"API process exited with code {process.returncode}.")
     except FileNotFoundError as e:
         logging.error(f"Failed to start API: {e}")
     except Exception as e:
@@ -77,11 +72,11 @@ async def main():
 
     try:
         # Start the API and wait for it to be ready
-        await start_api()
+        # await start_api()
         logging.info("API started successfully.")
 
         # Start the AzanUI and wait for it to be ready
-        await start_web()
+        # await start_web()
         logging.info("AzanUI started successfully.")
 
         # Start the AzanScheduler
