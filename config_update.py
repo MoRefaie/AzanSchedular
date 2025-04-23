@@ -103,7 +103,7 @@ class ConfigUpdater:
 
 
             # Validate AZAN_SWITCHES and SHORT_AZAN_SWITCHES to be valid dictionaries
-            if key in ["AZAN_SWITCHES", "SHORT_AZAN_SWITCHES"]:
+            if key in ["AZAN_SWITCHES", "SHORT_AZAN_SWITCHES", "DUAA_SWITCHES"]:
                 if not self._validate_dict_switch(value, required_prayer_keys):
                     logging.error(f"❌ Key '{key}' must be a dictionary with keys {required_prayer_keys} and values 'On' or 'Off'.")
                     status[key] = {
