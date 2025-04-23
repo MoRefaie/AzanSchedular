@@ -29,10 +29,12 @@ class AzanScheduler:
         devices = json.loads(os.getenv("DEVICES"))  # List of device identifiers
         azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))  # JSON string for prayer switches
         short_azan_switch = json.loads(os.getenv("SHORT_AZAN_SWITCHES"))  # Short Azan switches
+        duaa_switch = json.loads(os.getenv("DUAA_SWITCHES"))  # Short Azan switches
         media_folder = os.getenv("MEDIA_FOLDER")  # Media folder path
         azan_file_short = os.path.join(os.getcwd(), media_folder, os.getenv('SHORT_AZAN_FILE'))
         azan_file_fajr = os.path.join(os.getcwd(), media_folder, os.getenv('FAJR_AZAN_FILE'))
         azan_file_regular = os.path.join(os.getcwd(), media_folder, os.getenv('REGULAR_AZAN_FILE'))
+        duaa_file = os.path.join(os.getcwd(), media_folder, os.getenv('DUAA_FILE'))
         audio_volume = float(os.getenv("AUDIO_VOLUME"))  # Default audio volume level (0.0 to 1.0)
 
         # Check if Azan is enabled for the prayer
@@ -48,6 +50,12 @@ class AzanScheduler:
                 logging.info(f"📢 Playing Azan for {prayer_name} using file: {azan_file}")
 
             await self.manager.announce(azan_file, devices,audio_volume)
+            duaa_enabled = duaa_switch.get(prayer_name)
+            if duaa_enabled == "On":
+                logging.info(f"📢 Playing Duaa for {prayer_name} using file: {duaa_file}")
+                await self.manager.announce(duaa_file, devices,audio_volume)
+            else:
+                logging.info(f"🔕 Duaa for {prayer_name} is disabled in the configuration.")
         else:
             logging.info(f"🔕 Azan for {prayer_name} is disabled in the configuration.")
 
