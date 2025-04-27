@@ -8,7 +8,7 @@ def simulate_scan_devices_call():
     """
     Simulates an API call to the /scan-devices endpoint and logs the result.
     """
-    url = "http://127.0.0.1:8000/scan-devices"  # URL of the API endpoint
+    url = "http://127.0.0.1:8000/api/scan-devices"  # URL of the API endpoint
 
     try:
         # Make the GET request to the /scan-devices endpoint

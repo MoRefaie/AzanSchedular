@@ -1,44 +1,45 @@
 import asyncio
-import logging
 import uvicorn
 from api import app  # Import the API app
 from azan_scheduler import AzanScheduler  # Import the AzanScheduler class
+from logging_config import get_logger  # Import the centralized logger
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# Get a logger for this module
+logger = get_logger(__name__)
+
+# Global variable to hold the scheduler task
+scheduler_task = None
 
 async def start_api():
     """
-    Starts the API application using uvicorn and logs its output asynchronously.
+    Starts the FastAPI application using uvicorn and logs its output asynchronously.
     """
-    logging.info("Starting the API...")
-    try:
-        # Run the API application as an asynchronous subprocess
-        process = await asyncio.create_subprocess_shell(
-            "uvicorn api:app --host 127.0.0.1 --port 8000 --log-level info",  # Command to start the API app
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
-        )
+    logger.info("Starting the API...")
+    config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="info", lifespan="on")
+    server = uvicorn.Server(config)
 
-        # Log the stdout and stderr in real-time
-        logging.info("API process started. Waiting for it to be ready...")
-        async for line in process.stderr:
-            decoded_line = line.decode().strip()
-            logging.info(f"API: {decoded_line}")
-            # Check for a specific line indicating the API is ready
-            if "Uvicorn running on" in decoded_line:
-                logging.info("API is ready.")
-                break
-    except FileNotFoundError as e:
-        logging.error(f"Failed to start API: {e}")
+    try:
+        # Run Uvicorn in the background
+        server_task = asyncio.create_task(server.serve())
+        logger.info("API process started. Waiting for it to be ready...")
+
+        # Check if the server is running
+        while not server.started:  # Wait until Uvicorn reports it has started
+            await asyncio.sleep(0.1)  # Prevent busy waiting
+        if server.started:
+            logger.info("API started successfully.")
+            return
+        else:
+            logger.error("Failed to start API.")
+
     except Exception as e:
-        logging.error(f"An unexpected error occurred while starting API: {e}")
+        logger.error(f"An unexpected error occurred while starting API: {e}")
 
 async def start_web():
     """
     Starts the AzanUI application and logs its output asynchronously.
     """
-    logging.info("Starting the AzanUI...")
+    logger.info("Starting the AzanUI...")
     try:
         # Run the Node.js application as an asynchronous subprocess
         process = await asyncio.create_subprocess_shell(
@@ -47,46 +48,79 @@ async def start_web():
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        logging.info("API process started. Waiting for it to be ready...")
+        logger.info("API process started. Waiting for it to be ready...")
         async for line in process.stdout:
             decoded_line = line.decode().strip()
             if decoded_line != "":
-                logging.info(f"AzanUI: {decoded_line}")
+                logger.info(f"AzanUI: {decoded_line}")
                 # Check for a specific line indicating the API is ready
                 if "Network" in decoded_line:
-                    logging.info("AzanUI is ready.")
+                    logger.info("AzanUI is ready.")
                     break
     except FileNotFoundError as e:
-        logging.error(f"Failed to start AzanUI: {e}")
+        logger.error(f"Failed to start AzanUI: {e}")
     except Exception as e:
-        logging.error(f"An unexpected error occurred while starting AzanUI: {e}")
+        logger.error(f"An unexpected error occurred while starting AzanUI: {e}")
+
+
+async def start_scheduler():
+    """
+    Starts the AzanScheduler as an asyncio task.
+    """
+    global scheduler_task
+    if scheduler_task and not scheduler_task.done():
+        logger.warning("Scheduler is already running.")
+        return
+    
+    logger.info("Starting the AzanScheduler...")
+    scheduler = AzanScheduler()
+    scheduler_task = asyncio.create_task(scheduler.run())
+    logger.info("AzanScheduler started.")
+
+async def stop_scheduler():
+    """
+    Stops the AzanScheduler if it is running.
+    """
+    global scheduler_task
+    if scheduler_task and not scheduler_task.done():
+        logger.info("Stopping the AzanScheduler...")
+        scheduler_task.cancel()
+        try:
+            await scheduler_task
+        except asyncio.CancelledError:
+            logger.info("AzanScheduler stopped.")
+    else:
+        logger.warning("AzanScheduler is not running.")
+
+async def restart_scheduler():
+    """
+    Restarts the AzanScheduler.
+    """
+    logger.info("Restarting the AzanScheduler...")
+    await stop_scheduler()
+    await start_scheduler()
 
 async def main():
     """
     Runs the API application, the AzanUI, and the AzanScheduler sequentially.
     """
-    logging.info("Starting the API, AzanUI, and AzanScheduler sequentially...")
-
-    # Create an instance of AzanScheduler
-    scheduler = AzanScheduler()
+    logger.info("Starting the API, AzanUI, and AzanScheduler sequentially...")
 
     try:
         # Start the API and wait for it to be ready
-        # await start_api()
-        logging.info("API started successfully.")
+        await start_api()
 
         # Start the AzanUI and wait for it to be ready
         # await start_web()
-        logging.info("AzanUI started successfully.")
+        logger.info("AzanUI started successfully.")
 
         # Start the AzanScheduler
-        await scheduler.run()
-        logging.info("AzanScheduler started successfully.")
+        await start_scheduler()
 
     except KeyboardInterrupt:
-        logging.info("Shutting down gracefully...")
+        logger.info("Shutting down gracefully...")
     except Exception as e:
-        logging.error(f"An error occurred: {e}")
+        logger.error(f"An error occurred: {e}")
     finally:
         # Cancel all running tasks
         tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
@@ -99,6 +133,6 @@ if __name__ == "__main__":
         # Run the main function in the asyncio event loop
         asyncio.run(main())
     except KeyboardInterrupt:
-        logging.info("Application interrupted by user.")
+        logger.info("Application interrupted by user.")
     except RuntimeError as e:
-        logging.error(f"RuntimeError occurred: {e}")
+        logger.error(f"RuntimeError occurred: {e}")

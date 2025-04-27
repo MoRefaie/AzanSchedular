@@ -4,8 +4,11 @@ import logging
 from pyatv.const import Protocol
 from tabulate import tabulate
 import io
+from logging_config import get_logger  # Import the centralized logger
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# Get a logger for this module
+logger = get_logger(__name__)
+
 
 
 class AppleManager:
@@ -13,12 +16,12 @@ class AppleManager:
         """
         Discovers an Apple device on the network by its identifier.
         """
-        logging.info(f"🔍 Discovering device with identifier: {identifier}")
+        logger.info(f"🔍 Discovering device with identifier: {identifier}")
         atvs = await pyatv.scan(loop, identifier=identifier)
         if not atvs:
-            logging.error(f"❌ Device with identifier {identifier} not found on the network.")
+            logger.error(f"❌ Device with identifier {identifier} not found on the network.")
             return None
-        logging.info(f"✅ Device found - Name: {atvs[0].name} - IP: {atvs[0].address}")
+        logger.info(f"✅ Device found - Name: {atvs[0].name} - IP: {atvs[0].address}")
         return atvs[0]
 
     async def _play_file(self, loop, device, file_path, volume):
@@ -31,7 +34,7 @@ class AppleManager:
             file_path (str): The path of the file to play.
             volume (float): The volume level (0.0 to 100.0).
         """
-        logging.info(f"🎵 Connecting to device: {device.name} - IP: {device.address}")
+        logger.info(f"🎵 Connecting to device: {device.name} - IP: {device.address}")
         atv = None
         try:
             atv = await pyatv.connect(device, loop)
@@ -39,14 +42,14 @@ class AppleManager:
             # Set the volume on the device
             if volume is not None:
                 await atv.audio.set_volume(volume)
-                logging.info(f"🔊 Volume set to {volume}% on {device.name}")
+                logger.info(f"🔊 Volume set to {volume}% on {device.name}")
 
             # Play the file
-            logging.info(f"🎵 Playing file: {file_path} on {device.name}")
+            logger.info(f"🎵 Playing file: {file_path} on {device.name}")
             await atv.stream.stream_file(file_path)
-            logging.info(f"✅ File is done playing on {device.name} - IP: {device.address}")
+            logger.info(f"✅ File is done playing on {device.name} - IP: {device.address}")
         except Exception as e:
-            logging.error(f"❌ Error while playing file on {device.name}: {e}")
+            logger.error(f"❌ Error while playing file on {device.name}: {e}")
         finally:
             if atv:
                 atv.close()
@@ -70,7 +73,7 @@ class AppleManager:
         if tasks:
             await asyncio.gather(*tasks)
         else:
-            logging.error("❌ No devices were found to announce on.")
+            logger.error("❌ No devices were found to announce on.")
 
     async def scan_for_devices(self):
         """
@@ -113,10 +116,10 @@ class AppleManager:
             devices.append(device_info)
 
         if not devices:
-            logging.error("❌ No Apple devices found on the network.")
+            logger.error("❌ No Apple devices found on the network.")
             return {"status": "error", "message": "No Apple devices found on the network."}
         else:
-            logging.info("✅ Found the following Apple devices:")
+            logger.info("✅ Found the following Apple devices:")
 
             # Define table headers
             table_headers = [
@@ -141,7 +144,7 @@ class AppleManager:
             ]
 
             # Log the table
-            logging.info("\n" + tabulate(table_data, headers=table_headers, tablefmt="grid"))
+            logger.info("\n" + tabulate(table_data, headers=table_headers, tablefmt="grid"))
 
             # Return the devices as dict
             return {"status": "success", "devices": devices}

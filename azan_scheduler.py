@@ -1,17 +1,17 @@
 import os
 import asyncio
-import logging
 import json
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from prayer_times_fetcher import PrayerTimesFetcher
 from apple_manager import AppleManager
+from logging_config import get_logger  # Import the centralized logger
 
 # Load environment variables from .env file
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+# Get a logger for this module
+logger = get_logger(__name__)
 
 class AzanScheduler:
     def __init__(self):
@@ -40,24 +40,24 @@ class AzanScheduler:
         # Check if Azan is enabled for the prayer
         azan_enabled = azan_switches.get(prayer_name)
         if azan_enabled == "On":
-            logging.info(f"📢 Azan for {prayer_name} is enabled in the configuration.")
+            logger.info(f"📢 Azan for {prayer_name} is enabled in the configuration.")
             short_azan_enabled = short_azan_switch.get(prayer_name)
             if short_azan_enabled == "On":
                 azan_file = azan_file_short
-                logging.info(f"📢 Playing Short Azan for {prayer_name} using file: {azan_file}")
+                logger.info(f"📢 Playing Short Azan for {prayer_name} using file: {azan_file}")
             else:
                 azan_file = azan_file_fajr if prayer_name.lower() == "fajr" else azan_file_regular
-                logging.info(f"📢 Playing Azan for {prayer_name} using file: {azan_file}")
+                logger.info(f"📢 Playing Azan for {prayer_name} using file: {azan_file}")
 
-            await self.manager.announce(azan_file, devices,audio_volume)
+            await self.manager.announce(azan_file, devices, audio_volume)
             duaa_enabled = duaa_switch.get(prayer_name)
             if duaa_enabled == "On":
-                logging.info(f"📢 Playing Duaa for {prayer_name} using file: {duaa_file}")
-                await self.manager.announce(duaa_file, devices,audio_volume)
+                logger.info(f"📢 Playing Duaa for {prayer_name} using file: {duaa_file}")
+                await self.manager.announce(duaa_file, devices, audio_volume)
             else:
-                logging.info(f"🔕 Duaa for {prayer_name} is disabled in the configuration.")
+                logger.info(f"🔕 Duaa for {prayer_name} is disabled in the configuration.")
         else:
-            logging.info(f"🔕 Azan for {prayer_name} is disabled in the configuration.")
+            logger.info(f"🔕 Azan for {prayer_name} is disabled in the configuration.")
 
     async def _schedule_next_prayer(self):
         """
@@ -67,7 +67,7 @@ class AzanScheduler:
             # Fetch the next prayer
             next_prayer = self.fetcher.fetch_prayer_times(os.getenv("DEFAULT_TIMETABLE"))
             if "error" in next_prayer:
-                logging.error(f"❌ Error fetching prayer times: {next_prayer['error']}")
+                logger.error(f"❌ Error fetching prayer times: {next_prayer['error']}")
                 await asyncio.sleep(60)  # Retry after 1 minute
                 continue
 
@@ -80,7 +80,7 @@ class AzanScheduler:
             sleep_duration = (prayer_time - now).total_seconds()
 
             if sleep_duration <= 0:
-                logging.warning(f"⚠️ Skipping past prayer: {prayer_name} at {prayer_time}")
+                logger.warning(f"⚠️ Skipping past prayer: {prayer_name} at {prayer_time}")
                 continue
 
             # Calculate hours, minutes, and seconds from sleep_duration
@@ -88,7 +88,7 @@ class AzanScheduler:
             minutes, seconds = divmod(remainder, 60)
 
             # Log the next prayer time with sleep duration in hours:minutes:seconds format
-            logging.info(f"🕒 Next prayer: {prayer_name} at {prayer_time}. Sleeping for {int(hours):02}:{int(minutes):02}:{int(seconds):02}.")
+            logger.info(f"🕒 Next prayer: {prayer_name} at {prayer_time}. Sleeping for {int(hours):02}:{int(minutes):02}:{int(seconds):02}.")
             await asyncio.sleep(sleep_duration)
 
             # Play the Azan
@@ -98,7 +98,7 @@ class AzanScheduler:
         """
         Starts the Azan scheduler.
         """
-        logging.info("📅 Starting Azan Scheduler...")
+        logger.info("📅 Starting Azan Scheduler...")
         await self._schedule_next_prayer()
 
 

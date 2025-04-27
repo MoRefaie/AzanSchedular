@@ -1,6 +1,6 @@
 import os
 import time
-from dotenv import set_key
+from dotenv import load_dotenv,set_key
 from pathlib import Path
 import subprocess
 import signal
@@ -9,7 +9,7 @@ import signal
 env_path = Path(".env")
 
 # Path to the second process script
-process_2_script = "test.py"
+process_2_script = "run()"
 
 # Global variable to store the child process
 child_process = None
@@ -57,3 +57,11 @@ if __name__ == "__main__":
             child_process.terminate()  # Gracefully terminate the child process
             child_process.wait()  # Wait for the process to terminate
         print("Exiting...")
+        
+def run():
+    load_dotenv()
+    x=0
+    while x < 10:
+        x=x+1
+        print(f'{x}:{os.getenv("TEST")}')
+        time.sleep(1)

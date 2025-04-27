@@ -5,7 +5,11 @@ from dotenv import load_dotenv, set_key
 import json
 import re
 from dateutil import tz
+from logging_config import get_logger  # Import the centralized logger
 
+# Get a logger for this module
+logger = get_logger(__name__)
+        
 class ConfigUpdater:
     def __init__(self, env_file_path=".env", media_folder="media"):
         """
@@ -16,9 +20,6 @@ class ConfigUpdater:
             media_folder (str): Path to the media folder.
         """
         self.env_file_path = os.path.join(os.getcwd(), env_file_path)
-
-        # Configure logging
-        logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 
         # Load environment variables from the .env file
         load_dotenv()
@@ -68,14 +69,14 @@ class ConfigUpdater:
         for key, value in updates.items():
             # Block updates to specific keys
             if key in ["REGULAR_AZAN_FILE", "FAJR_AZAN_FILE", "SHORT_AZAN_FILE"]:
-                logging.error(f"❌ Key '{key}' cannot be updated. It is managed elsewhere.")
+                logger.error(f"❌ Key '{key}' cannot be updated. It is managed elsewhere.")
                 status[key] = {"status": "blocked", "message": f"Key '{key}' cannot be updated."}
                 continue
 
             # Validate SOURCES as a dictionary
             if key == "SOURCES":
                 if not self._validate_dict_source(value):
-                    logging.error(f"❌ Key '{key}' must be a dictionary where each key is a source name and each value is a valid URL.")
+                    logger.error(f"❌ Key '{key}' must be a dictionary where each key is a source name and each value is a valid URL.")
                     status[key] = {"status": "fail", "message": f"Key '{key}' must be a dictionary with source names as keys and valid URLs as values."}
                     continue
 
@@ -86,7 +87,7 @@ class ConfigUpdater:
                 else:
                     sources = list(json.loads(os.getenv("SOURCES")).keys())
                 if value not in sources:
-                    logging.error(f"❌ Key '{key}' must be one of the available sources: {sources}.")
+                    logger.error(f"❌ Key '{key}' must be one of the available sources: {sources}.")
                     status[key] = {"status": "fail", "message": f"Key '{key}' must be one of the available sources: {sources}."}
                     continue
 
@@ -97,7 +98,7 @@ class ConfigUpdater:
                     if tz.gettz(value) is None:
                         raise ValueError
                 except ValueError:
-                    logging.error(f"❌ Key '{key}' must be a valid timezone.")
+                    logger.error(f"❌ Key '{key}' must be a valid timezone.")
                     status[key] = {"status": "fail", "message": f"Key '{key}' must be a valid timezone."}
                     continue
 
@@ -105,7 +106,7 @@ class ConfigUpdater:
             # Validate AZAN_SWITCHES and SHORT_AZAN_SWITCHES to be valid dictionaries
             if key in ["AZAN_SWITCHES", "SHORT_AZAN_SWITCHES", "DUAA_SWITCHES"]:
                 if not self._validate_dict_switch(value, required_prayer_keys):
-                    logging.error(f"❌ Key '{key}' must be a dictionary with keys {required_prayer_keys} and values 'On' or 'Off'.")
+                    logger.error(f"❌ Key '{key}' must be a dictionary with keys {required_prayer_keys} and values 'On' or 'Off'.")
                     status[key] = {
                         "status": "fail",
                         "message": f"Key '{key}' must be a dictionary with keys {required_prayer_keys} and values 'On' or 'Off'."
@@ -119,7 +120,7 @@ class ConfigUpdater:
                     if not (0.0 <= volume <= 100.0):
                         raise ValueError
                 except ValueError:
-                    logging.error(f"❌ Key '{key}' must be a float between 0.0 and 100.0.")
+                    logger.error(f"❌ Key '{key}' must be a float between 0.0 and 100.0.")
                     status[key] = {"status": "fail", "message": f"Key '{key}' must be a float between 0.0 and 100.0."}
                     continue
 
@@ -137,10 +138,10 @@ class ConfigUpdater:
 
                 # Reload the environment variable
                 os.environ[key] = value.strip('"')
-                logging.info(f"✅ Updated {key} in .env file to: {value}")
+                logger.info(f"✅ Updated {key} in .env file to: {value}")
                 status[key] = {"status": "updated", "message": f"Key '{key}' updated successfully."}
             except Exception as e:
-                logging.error(f"❌ Failed to update key '{key}': {e}")
+                logger.error(f"❌ Failed to update key '{key}': {e}")
                 status[key] = {"status": "fail", "message": f"Failed to update key '{key}': {e}"}
 
         return status
@@ -166,11 +167,11 @@ class ConfigUpdater:
             if os.path.exists(existing_file_path):
                 backup_file_path = f"{existing_file_path}.backup"
                 shutil.move(existing_file_path, backup_file_path)
-                logging.info(f"🔄 Backed up existing file to: {backup_file_path}")
+                logger.info(f"🔄 Backed up existing file to: {backup_file_path}")
 
             # Move the new file to the media folder
             shutil.move(new_file_path, existing_file_path)
-            logging.info(f"✅ Updated media file: {file_name}")
+            logger.info(f"✅ Updated media file: {file_name}")
         except Exception as e:
-            logging.error(f"❌ Failed to update media file {file_name}: {e}")
+            logger.error(f"❌ Failed to update media file {file_name}: {e}")
 
