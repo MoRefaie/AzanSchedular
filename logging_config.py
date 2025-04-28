@@ -39,6 +39,16 @@ def configure_logger():
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.INFO)
 
+    # Custom formatter that prepends 'API - ' to Uvicorn logs
+    class UvicornFilter(logging.Filter):
+        def filter(self, record):
+            if record.name.startswith("uvicorn"):
+                record.msg = f"API Log - {record.msg}"
+            return True
+        
+    # Add the custom filter to the file handler
+    file_handler.addFilter(UvicornFilter())
+
     # Add the file handler
     root_logger.addHandler(file_handler)
 
@@ -47,37 +57,6 @@ def configure_logger():
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(log_formatter)
         root_logger.addHandler(console_handler)
-
-# Function to configure a logger for Uvicorn
-def configure_uvicorn_logger():
-    """
-    Configures a logger for Uvicorn to integrate its logs into the application's logging system.
-    """
-    uvicorn_access_logger = logging.getLogger("uvicorn.access")
-    uvicorn_access_logger.setLevel(logging.INFO)
-
-    uvicorn_error_logger = logging.getLogger("uvicorn.error")
-    uvicorn_error_logger.setLevel(logging.INFO)
-
-    # Add the file handler to both loggers
-    uvicorn_access_logger.addHandler(file_handler)
-    uvicorn_error_logger.addHandler(file_handler)
-
-    # Add a console handler if console_logging is enabled
-    if console_logging:
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(log_formatter)
-        uvicorn_access_logger.addHandler(console_handler)
-        uvicorn_error_logger.addHandler(console_handler)
-
-    # Prepend "API Log -" to all Uvicorn logs
-    class APILogFilter(logging.Filter):
-        def filter(self, record):
-            record.msg = f"API Log - {record.msg}"
-            return True
-
-    uvicorn_access_logger.addFilter(APILogFilter())
-    uvicorn_error_logger.addFilter(APILogFilter())
 
 # Function to get a logger
 def get_logger(name):
@@ -94,4 +73,3 @@ def get_logger(name):
 
 # Configure the logger based on the .env setting
 configure_logger()
-configure_uvicorn_logger()
