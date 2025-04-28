@@ -5,6 +5,8 @@ from dotenv import load_dotenv, set_key
 import json
 import re
 from dateutil import tz
+import asyncio
+from scheduler_manager import restart_scheduler
 from logging_config import get_logger  # Import the centralized logger
 
 # Get a logger for this module
@@ -59,7 +61,7 @@ class ConfigUpdater:
                 return False
         return True
         
-    def update_env_keys(self, updates: dict) -> dict:
+    async def update_env_keys(self, updates: dict) -> dict:
         """
         Updates multiple keys in the .env file with the given values and returns a status for each key.
         """
@@ -137,8 +139,8 @@ class ConfigUpdater:
                 set_key(self.env_file_path, key, value, quote_mode="never")
 
                 # Reload the environment variable
-                os.environ[key] = value.strip('"')
                 logger.info(f"✅ Updated {key} in .env file to: {value}")
+                await restart_scheduler()
                 status[key] = {"status": "updated", "message": f"Key '{key}' updated successfully."}
             except Exception as e:
                 logger.error(f"❌ Failed to update key '{key}': {e}")

@@ -1,14 +1,11 @@
 import asyncio
 import uvicorn
 from api import app  # Import the API app
-from azan_scheduler import AzanScheduler  # Import the AzanScheduler class
+from scheduler_manager import start_scheduler  # Import the start_scheduler function
 from logging_config import get_logger  # Import the centralized logger
 
 # Get a logger for this module
 logger = get_logger(__name__)
-
-# Global variable to hold the scheduler task
-scheduler_task = None
 
 async def start_api():
     """
@@ -28,7 +25,7 @@ async def start_api():
             await asyncio.sleep(0.1)  # Prevent busy waiting
         if server.started:
             logger.info("API started successfully.")
-            return
+            return server_task
         else:
             logger.error("Failed to start API.")
 
@@ -62,44 +59,6 @@ async def start_web():
     except Exception as e:
         logger.error(f"An unexpected error occurred while starting AzanUI: {e}")
 
-
-async def start_scheduler():
-    """
-    Starts the AzanScheduler as an asyncio task.
-    """
-    global scheduler_task
-    if scheduler_task and not scheduler_task.done():
-        logger.warning("Scheduler is already running.")
-        return
-    
-    logger.info("Starting the AzanScheduler...")
-    scheduler = AzanScheduler()
-    scheduler_task = asyncio.create_task(scheduler.run())
-    logger.info("AzanScheduler started.")
-
-async def stop_scheduler():
-    """
-    Stops the AzanScheduler if it is running.
-    """
-    global scheduler_task
-    if scheduler_task and not scheduler_task.done():
-        logger.info("Stopping the AzanScheduler...")
-        scheduler_task.cancel()
-        try:
-            await scheduler_task
-        except asyncio.CancelledError:
-            logger.info("AzanScheduler stopped.")
-    else:
-        logger.warning("AzanScheduler is not running.")
-
-async def restart_scheduler():
-    """
-    Restarts the AzanScheduler.
-    """
-    logger.info("Restarting the AzanScheduler...")
-    await stop_scheduler()
-    await start_scheduler()
-
 async def main():
     """
     Runs the API application, the AzanUI, and the AzanScheduler sequentially.
@@ -114,8 +73,11 @@ async def main():
         # await start_web()
         logger.info("AzanUI started successfully.")
 
-        # Start the AzanScheduler
+        # Start the AzanScheduler and wait for it
         await start_scheduler()
+
+        while True:
+            await asyncio.sleep(1) 
 
     except KeyboardInterrupt:
         logger.info("Shutting down gracefully...")

@@ -8,7 +8,7 @@ def simulate_config_update_param_call():
     """
     Simulates an API call to the /update-config endpoint and logs the result.
     """
-    url = "http://127.0.0.1:8000/update-config"  # URL of the API endpoint
+    url = "http://127.0.0.1:8000/api/update-config"  # URL of the API endpoint
 
     # JSON payload to send to the API
     payload = {
