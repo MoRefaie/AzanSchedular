@@ -4,8 +4,33 @@ from api import app  # Import the API app
 from scheduler_manager import start_scheduler  # Import the start_scheduler function
 from logging_config import get_logger  # Import the centralized logger
 
+
 # Get a logger for this module
 logger = get_logger(__name__)
+
+async def shutdown():
+    """
+    Cleans up tasks, stops the event loop, and logs the shutdown process.
+    """
+    logger.info("Shutting down application...")
+
+    # Cancel all running tasks
+    tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
+    logger.info(f"Canceling {len(tasks)} running tasks...")
+    [task.cancel() for task in tasks]
+
+    # Wait for all tasks to finish
+    await asyncio.gather(*tasks, return_exceptions=True)
+    logger.info("All tasks canceled.")
+
+    # Stop the event loop
+    loop = asyncio.get_event_loop()
+    if not loop.is_closed():
+        loop.stop()
+        logger.info("Event loop stopped.")
+
+    logger.info("Shutdown process completed.")
+
 
 async def start_api():
     """
@@ -23,14 +48,26 @@ async def start_api():
         # Check if the server is running
         while not server.started:  # Wait until Uvicorn reports it has started
             await asyncio.sleep(0.1)  # Prevent busy waiting
+
         if server.started:
             logger.info("API started successfully.")
             return server_task
         else:
             logger.error("Failed to start API.")
+            return None
+
+    except BaseException as e:
+        # Catch BaseException explicitly and log the error
+        logger.error("Failed to start API.")
+        return None
 
     except Exception as e:
-        logger.error(f"An unexpected error occurred while starting API: {e}")
+        # Catch other exceptions and log them
+        logger.error("Failed to start API.")
+        logger.error(f"Exception: {e}")
+        return None
+
+# Ensure event loop runs properly
 
 async def start_web():
     """
@@ -67,34 +104,40 @@ async def main():
 
     try:
         # Start the API and wait for it to be ready
-        await start_api()
+        api_task = await start_api()
+        if api_task is None:    
+            logger.error("Exiting...")
+        else:
+            # Start the AzanUI and wait for it to be ready
+            # await start_web()
+            logger.info("AzanUI started successfully.")
 
-        # Start the AzanUI and wait for it to be ready
-        # await start_web()
-        logger.info("AzanUI started successfully.")
+            # Start the AzanScheduler and wait for it
+            await start_scheduler()
 
-        # Start the AzanScheduler and wait for it
-        await start_scheduler()
+            while True:
+                await asyncio.sleep(2) 
 
-        while True:
-            await asyncio.sleep(1) 
-
-    except KeyboardInterrupt:
-        logger.info("Shutting down gracefully...")
     except Exception as e:
         logger.error(f"An error occurred: {e}")
+    
     finally:
-        # Cancel all running tasks
-        tasks = [t for t in asyncio.all_tasks() if t is not asyncio.current_task()]
-        [task.cancel() for task in tasks]
-        await asyncio.gather(*tasks, return_exceptions=True)
-        asyncio.get_event_loop().stop()
+        # Call the shutdown function
+        await shutdown()
 
 if __name__ == "__main__":
     try:
         # Run the main function in the asyncio event loop
         asyncio.run(main())
-    except KeyboardInterrupt:
-        logger.info("Application interrupted by user.")
+    except SystemExit as e:
+        pass
+    except BaseException as e:
+        # Catch SystemExit explicitly and log the error
+        pass
     except RuntimeError as e:
         logger.error(f"RuntimeError occurred: {e}")
+    except Exception as e:
+        # Catch other exceptions and log them
+        logger.error(f"Exception occurred: {e}")    
+    finally:
+        logger.info("Shutting down completed.")
