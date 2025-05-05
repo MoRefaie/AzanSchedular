@@ -114,20 +114,8 @@ async def update_config(request: ConfigManagerUpdateRequest):
         logger.error(f"❌ Failed to update configuration: {e}")
         raise HTTPException(status_code=500, detail="Failed to update configuration.")
 
-@app.get("/api/restart-scheduler")
-async def api_restart_scheduler():
-    """
-    API endpoint to restart the Azan scheduler.
-    """
-    logger.info("Received request to /restart-scheduler endpoint.")
-    try:
-        # Call the restart_scheduler method
-        return await restart_scheduler()
-    except Exception as e:
-        logger.error(f"❌ Failed to restart scheduler: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to restart scheduler: {e}")
 
-@app.get("/api/start-scheduler")
+@app.post("/api/start-scheduler")
 async def api_start_scheduler():
     """
     API endpoint to start the Azan scheduler.
@@ -143,7 +131,7 @@ async def api_start_scheduler():
         raise HTTPException(status_code=500, detail=f"Failed to start scheduler: {e}")
 
 
-@app.get("/api/stop-scheduler")
+@app.post("/api/stop-scheduler")
 async def api_stop_scheduler():
     """
     API endpoint to stop the Azan scheduler.
