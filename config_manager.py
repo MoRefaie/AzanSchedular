@@ -49,6 +49,16 @@ class ConfigManager:
                 return False
         return True
 
+    def _validate_single_switch(self, value):
+        """
+        Validates if the value being "On" or "Off".
+        """
+        if not isinstance(value, str):
+            return False
+        if value not in ["On", "Off"]:
+            return False
+        return True
+
     def _validate_dict_source(self, value):
         """
         Validates if the value is a dictionary for sources.
@@ -112,6 +122,15 @@ class ConfigManager:
                     status[key] = {
                         "status": "fail",
                         "message": f"Key '{key}' must be a dictionary with keys {required_prayer_keys} and values 'On' or 'Off'."
+                    }
+                    continue
+                
+            if key == "ISHA_GAMA_SWITCH":
+                if not self._validate_single_switch(value):
+                    logger.error(f"❌ Key '{key}' values must be 'On' or 'Off'.")
+                    status[key] = {
+                        "status": "fail",
+                        "message": f"Key '{key}' values must be 'On' or 'Off'."
                     }
                     continue
 

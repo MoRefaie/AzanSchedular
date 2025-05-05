@@ -30,6 +30,7 @@ class AzanScheduler:
         azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))  # JSON string for prayer switches
         short_azan_switch = json.loads(os.getenv("SHORT_AZAN_SWITCHES"))  # Short Azan switches
         duaa_switch = json.loads(os.getenv("DUAA_SWITCHES"))  # Short Azan switches
+        isha_gama_switch = os.getenv("ISHA_GAMA_SWITCH") # Isha Gama switch
         media_folder = os.getenv("MEDIA_FOLDER")  # Media folder path
         azan_file_short = os.path.join(os.getcwd(), media_folder, os.getenv('SHORT_AZAN_FILE'))
         azan_file_fajr = os.path.join(os.getcwd(), media_folder, os.getenv('FAJR_AZAN_FILE'))
@@ -37,27 +38,30 @@ class AzanScheduler:
         duaa_file = os.path.join(os.getcwd(), media_folder, os.getenv('DUAA_FILE'))
         audio_volume = float(os.getenv("AUDIO_VOLUME"))  # Default audio volume level (0.0 to 1.0)
 
-        # Check if Azan is enabled for the prayer
-        azan_enabled = azan_switches.get(prayer_name)
-        if azan_enabled == "On":
-            logger.info(f"📢 Azan for {prayer_name} is enabled in the configuration.")
-            short_azan_enabled = short_azan_switch.get(prayer_name)
-            if short_azan_enabled == "On":
-                azan_file = azan_file_short
-                logger.info(f"📢 Playing Short Azan for {prayer_name} using file: {azan_file}")
-            else:
-                azan_file = azan_file_fajr if prayer_name.lower() == "fajr" else azan_file_regular
-                logger.info(f"📢 Playing Azan for {prayer_name} using file: {azan_file}")
-
-            await self.manager.announce(azan_file, devices, audio_volume)
-            duaa_enabled = duaa_switch.get(prayer_name)
-            if duaa_enabled == "On":
-                logger.info(f"📢 Playing Duaa for {prayer_name} using file: {duaa_file}")
-                await self.manager.announce(duaa_file, devices, audio_volume)
-            else:
-                logger.info(f"🔕 Duaa for {prayer_name} is disabled in the configuration.")
+        if prayer_name.lower() == "isha" and isha_gama_switch == "On":
+            logger.info(f"🔕 Azan for {prayer_name} as Gama is Enabled in the configuration.")
         else:
-            logger.info(f"🔕 Azan for {prayer_name} is disabled in the configuration.")
+            # Check if Azan is enabled for the prayer
+            azan_enabled = azan_switches.get(prayer_name)
+            if azan_enabled == "On":
+                logger.info(f"📢 Azan for {prayer_name} is enabled in the configuration.")
+                short_azan_enabled = short_azan_switch.get(prayer_name)
+                if short_azan_enabled == "On":
+                    azan_file = azan_file_short
+                    logger.info(f"📢 Playing Short Azan for {prayer_name} using file: {azan_file}")
+                else:
+                    azan_file = azan_file_fajr if prayer_name.lower() == "fajr" else azan_file_regular
+                    logger.info(f"📢 Playing Azan for {prayer_name} using file: {azan_file}")
+
+                await self.manager.announce(azan_file, devices, audio_volume)
+                duaa_enabled = duaa_switch.get(prayer_name)
+                if duaa_enabled == "On":
+                    logger.info(f"📢 Playing Duaa for {prayer_name} using file: {duaa_file}")
+                    await self.manager.announce(duaa_file, devices, audio_volume)
+                else:
+                    logger.info(f"🔕 Duaa for {prayer_name} is disabled in the configuration.")
+            else:
+                logger.info(f"🔕 Azan for {prayer_name} is disabled in the configuration.")
 
     async def _schedule_next_prayer(self):
         """
