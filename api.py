@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
 import logging
-from scheduler_manager import start_scheduler, stop_scheduler, restart_scheduler  # Import scheduler functions
+from scheduler_manager import start_scheduler, stop_scheduler, scheduler_status  # Import scheduler functions
 from apple_manager import AppleManager
 from config_manager import ConfigManager
 from prayer_times_fetcher import PrayerTimesFetcher
@@ -114,6 +114,20 @@ async def update_config(request: ConfigManagerUpdateRequest):
         logger.error(f"❌ Failed to update configuration: {e}")
         raise HTTPException(status_code=500, detail="Failed to update configuration.")
 
+@app.get("/api/scheduler-status")
+async def api_start_scheduler():
+    """
+    API endpoint to start the Azan scheduler.
+    Args:
+        api_call (bool): Indicates whether the function was called via an API request.
+    """
+    logger.info("Received request to /start-scheduler endpoint.")
+    try:
+        # Call the start_scheduler method
+        return await scheduler_status()
+    except Exception as e:
+        logger.error(f"❌ Failed to start scheduler: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to start scheduler: {e}")
 
 @app.post("/api/start-scheduler")
 async def api_start_scheduler():

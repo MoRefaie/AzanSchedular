@@ -9,7 +9,22 @@ logger = logging.getLogger(__name__)
 scheduler_task = None
 scheduler = AzanScheduler()  # Initialize the AzanScheduler
 
+async def scheduler_status():
+    """
+    Returns the status of the Azan scheduler.
 
+    Returns:
+        dict: A dictionary containing the status and whether the scheduler is active.
+    """
+    global scheduler_task
+
+    if scheduler_task and not scheduler_task.done():
+        logger.info("Scheduler is active.")
+        return {"status": "success", "data": {"active": True}}
+    else:
+        logger.info("Scheduler is not active.")
+        return {"status": "success", "data": {"active": False}}
+    
 async def start_scheduler():
     """
     Starts the Azan scheduler.
