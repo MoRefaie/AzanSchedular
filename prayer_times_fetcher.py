@@ -321,7 +321,6 @@ class PrayerTimesFetcher:
         today_day = str(today_date.day)
         today_month = str(today_date.month)
 
-        logger.debug(f"Extracting prayer times for {location.upper()} on {today_date_text}.")
         logger.info(f"Fetching prayer times for {location.upper()} on {today_date_text}.")
         day_prayers_times = self._get_day_prayers(data, today_day, today_month, today_date_text, location)
         if "error" in day_prayers_times:
@@ -350,6 +349,42 @@ class PrayerTimesFetcher:
         logger.info(f"Fetching the first prayer for {location.upper()} on {next_day_date_text}.")
         return self._find_first_prayer(next_day_date, next_day_prayers_times)
 
+    # Extract the Today prayer time
+    def _extract_today_prayer(self, data, location: str):
+        """
+        Extracts the prayer time from the provided timetable data.
+        """
+        today_date = datetime.now(self._get_timezone())
+        today_date_text = today_date.strftime("%Y-%m-%d")
+        today_day = str(today_date.day)
+        today_month = str(today_date.month)
+
+        logger.info(f"Fetching prayer times for {location.upper()} on {today_date_text}.")
+        day_prayers_times = self._get_day_prayers(data, today_day, today_month, today_date_text, location)
+        if "error" in day_prayers_times:
+            logger.error(f"Error fetching prayer times for {location.upper()} on {today_date_text}: {day_prayers_times['error']}.")
+            return day_prayers_times
+        logger.info(f"Prayer times for {location.upper()} on {today_date_text}: {day_prayers_times}.")
+
+        logger.info(f"Checking there next prayer for {location.upper()} on {today_date_text}.")
+        next_prayer = self._find_next_prayer(today_date, day_prayers_times)
+        if next_prayer:
+            logger.info(f"Next prayer found for {location.upper()} on {today_date_text} is {next_prayer['prayer']} at {next_prayer['prayer_time']}.")
+            return day_prayers_times
+
+        logger.info(f"No future prayers found for {location.upper()} on {today_date_text}. Checking the next day.")
+        next_day_date = today_date + timedelta(days=1)
+        next_day_date_text = next_day_date.strftime("%Y-%m-%d")
+        next_day = str(next_day_date.day)
+        next_month = str(next_day_date.month)
+
+        next_day_prayers_times = self._get_day_prayers(data, next_day, next_month, next_day_date_text, location)
+        if "error" in next_day_prayers_times:
+            logger.error(f"Error fetching prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times['error']}.")
+            return next_day_prayers_times
+        logger.info(f"Prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times}.")
+        return next_day_prayers_times
+
     # Check if the current month is a new month
     def _is_new_month(self, data):
         """
@@ -362,11 +397,12 @@ class PrayerTimesFetcher:
         return False
 
     # Fetch today's prayer times
-    def fetch_prayer_times(self, location):
+    def fetch_prayer_times(self,type):
         """
         Fetches today's prayer times for the specified location.
         Refreshes the timetable if it is a new month, if the data is missing, or if the file is outdated.
         """
+        location = os.getenv("DEFAULT_TIMETABLE")
         # Dynamically construct the timetable file path
         timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), f"{location}_formatted_timetable.json")
 
@@ -388,8 +424,14 @@ class PrayerTimesFetcher:
             if not self._refresh_timetable(location):
                 return {"error": f"Failed to load or refresh {location.upper()} timetable."}
             data = self._reload_data(location)
-
-        return self._extract_next_prayer(data, location)
+        if type == "next":
+            return self._extract_next_prayer(data, location)
+        elif type == "today":
+            return self._extract_today_prayer(data, location)
+        else:  
+            logger.error(f"Invalid type provided: {type}. Expected 'next' or 'today'.")
+            return {"error": f"Invalid type. Expected 'next' or 'today'."}
+            
 
 # Example usage
 if __name__ == "__main__":

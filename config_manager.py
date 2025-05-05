@@ -12,10 +12,10 @@ from logging_config import get_logger  # Import the centralized logger
 # Get a logger for this module
 logger = get_logger(__name__)
         
-class ConfigUpdater:
+class ConfigManager:
     def __init__(self, env_file_path=".env", media_folder="media"):
         """
-        Initializes the ConfigUpdater class.
+        Initializes the ConfigManager class.
 
         Args:
             env_file_path (str): Path to the .env file.
@@ -176,4 +176,38 @@ class ConfigUpdater:
             logger.info(f"✅ Updated media file: {file_name}")
         except Exception as e:
             logger.error(f"❌ Failed to update media file {file_name}: {e}")
+
+    def get_config_values(self, keys: list) -> dict:
+        """
+        Retrieves the values for the specified keys from the .env file.
+
+        Args:
+            keys (list): A list of keys to retrieve from the .env file.
+
+        Returns:
+            dict: A dictionary containing the key-value pairs for the specified keys.
+        """
+        try:
+            # Load the environment variables
+            load_dotenv(self.env_file_path, override=True)
+
+            # Retrieve the values for the specified keys
+            config_values = {}
+            for key in keys:
+                value = os.getenv(key)
+                if value is not None:
+                    try:
+                        parsed_value = json.loads(value)
+                        config_values[key] = parsed_value
+                    except (json.JSONDecodeError, TypeError):
+                        # If parsing fails, keep the value as a string
+                        config_values[key] = value
+                else:
+                    logger.warning(f"⚠️ Key '{key}' not found in the .env file.")
+
+            logger.info(f"✅ Successfully retrieved configuration values for keys: {keys}")
+            return config_values
+        except Exception as e:
+            logger.error(f"❌ Failed to retrieve configuration values: {e}")
+            return {"error": str(e)}
 

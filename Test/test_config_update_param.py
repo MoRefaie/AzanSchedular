@@ -1,5 +1,5 @@
 import asyncio
-from config_update import ConfigUpdater
+from config_manager import ConfigUpdater
 from dotenv import load_dotenv
 import os
 

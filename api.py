@@ -1,10 +1,12 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
 import logging
 from scheduler_manager import start_scheduler, stop_scheduler, restart_scheduler  # Import scheduler functions
 from apple_manager import AppleManager
-from config_update import ConfigUpdater
+from config_manager import ConfigManager
+from prayer_times_fetcher import PrayerTimesFetcher
 from logging_config import get_logger  # Import the centralized logger
 
 # Get a logger for this module
@@ -14,12 +16,45 @@ logger = get_logger(__name__)
 # Create a FastAPI app instance
 app = FastAPI()
 
-# Initialize the AppleManager,ConfigUpdater and AzanScheduler
-manager = AppleManager()
-config_updater = ConfigUpdater()
+# Enable CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:8080"],  # Frontend origin
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 
-class ConfigUpdateRequest(BaseModel):
+
+# Initialize the AppleManager,ConfigManager and AzanScheduler
+apple_manager = AppleManager()
+config_manager = ConfigManager()
+prayer_fetcher = PrayerTimesFetcher()
+
+class ConfigManagerGetRequest(BaseModel):
+    list: list  # A dictionary of keys and values to update in the .env file
+
+class ConfigManagerUpdateRequest(BaseModel):
     updates: dict  # A dictionary of keys and values to update in the .env file
+
+@app.get("/api/prayer-times")
+async def prayer_times():
+    """
+    Fetches today's prayer times using PrayerTimesFetcher.
+    Returns:
+        JSon: A dictionary containing the prayer times for the day or an error message.
+    """
+    logger.info("Received request to /prayer-times endpoint.")
+    try:
+        # Call the scan_for_devices method
+        logger.info("Get today's prayer time.")
+        today_prayer_times = prayer_fetcher.fetch_prayer_times("today")
+        logger.info(f"Today's prayer times Results: {today_prayer_times}")
+        return {"status": "success", "data": today_prayer_times}
+    
+    except Exception as e:
+        logger.error(f"An error occurred while geting today's prayer times: {e}")
+        return {"status": "error", "message": str(e)}
 
 @app.get("/api/scan-devices")
 async def scan_devices():
@@ -32,16 +67,38 @@ async def scan_devices():
     try:
         # Call the scan_for_devices method
         logger.info("Starting device scan...")
-        devices_json = await manager.scan_for_devices()
+        devices_json = await apple_manager.scan_for_devices()
         logger.info("Device scan completed successfully.")
         logger.info(f"Scan Results: {devices_json}")
         return {"status": "success", "data": devices_json}
     except Exception as e:
         logger.error(f"An error occurred while scanning for devices: {e}")
         return {"status": "error", "message": str(e)}
+    
+@app.post("/api/get-config")
+async def get_config(request: ConfigManagerGetRequest):
+    """
+    API endpoint to get configuration values from the .env file.
+    Args:
+        request (ConfigManagerGetRequest): The request object containing the keys to retrieve.
+    Returns:
+        JSON: A dictionary containing the configuration values for the specified keys.
+    """
+    logger.info("Received request to api/get-config endpoint.")
+    try:
+        # Call the get_config_values method with the received keys
+        logger.info(f"Received request to get config values for keys: {request.list}")
+        config_values = config_manager.get_config_values(request.list)
+        logger.info(f"Config values retrieved successfully: {config_values}")
+        return {"status": "success", "data": config_values}
+    
+    except Exception as e:
+        logger.error(f"An error occurred while getting config values: {e}")
+        return {"status": "error", "message": str(e)}
+
 
 @app.post("/api/update-config")
-async def update_config(request: ConfigUpdateRequest):
+async def update_config(request: ConfigManagerUpdateRequest):
     """
     API endpoint to update configuration keys in the .env file.
     """
@@ -49,7 +106,7 @@ async def update_config(request: ConfigUpdateRequest):
     try:
         # Call the update_env_keys method with the received updates
         logger.info(f"Received update request: {request.updates}")
-        update_status = await config_updater.update_env_keys(request.updates)
+        update_status = await config_manager.update_env_keys(request.updates)
 
         # Return the status of the updates
         return {"status": "success", "update_status": update_status}

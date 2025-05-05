@@ -65,7 +65,7 @@ class AzanScheduler:
         """
         while True:
             # Fetch the next prayer
-            next_prayer = self.fetcher.fetch_prayer_times(os.getenv("DEFAULT_TIMETABLE"))
+            next_prayer = self.fetcher.fetch_prayer_times("next")
             if "error" in next_prayer:
                 logger.error(f"❌ Error fetching prayer times: {next_prayer['error']}")
                 await asyncio.sleep(60)  # Retry after 1 minute
