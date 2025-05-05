@@ -260,6 +260,16 @@ class PrayerTimesFetcher:
         next_prayer_time = None
 
         for prayer, time_str in day_prayers_times.items():
+            azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))
+            if azan_switches.get(prayer, "Off") == "Off":
+                logger.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
+                continue
+
+            isha_gama_switch = os.getenv("ISHA_GAMA_SWITCH") # Isha Gama switch
+            if prayer.lower() == "isha" and isha_gama_switch == "On":
+                logger.debug(f"Skipping prayer {prayer} as Gama is turned On in the switches.")
+                continue
+
             try:
                 prayer_time = datetime.strptime(time_str, "%H:%M").replace(
                     year=current_time.year, month=current_time.month, day=current_time.day, tzinfo=self._get_timezone()
@@ -267,7 +277,7 @@ class PrayerTimesFetcher:
             except ValueError as e:
                 logger.error(f"Invalid time format for prayer {prayer}: {time_str}. Error: {e}")
                 continue
-
+            
             logger.debug(f"Checking prayer {prayer} at {prayer_time}.")
             if prayer_time > current_time:
                 if next_prayer_time is None or prayer_time < next_prayer_time:
