@@ -380,7 +380,7 @@ class PrayerTimesFetcher:
         next_prayer = self._find_next_prayer(today_date, day_prayers_times)
         if next_prayer:
             logger.info(f"Next prayer found for {location.upper()} on {today_date_text} is {next_prayer['prayer']} at {next_prayer['prayer_time']}.")
-            return day_prayers_times
+            return {**day_prayers_times,"date":"2022-10-01"}#today_date_text}
 
         logger.info(f"No future prayers found for {location.upper()} on {today_date_text}. Checking the next day.")
         next_day_date = today_date + timedelta(days=1)
@@ -393,7 +393,7 @@ class PrayerTimesFetcher:
             logger.error(f"Error fetching prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times['error']}.")
             return next_day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times}.")
-        return next_day_prayers_times
+        return {**next_day_prayers_times,"date":next_day_date_text}
 
     # Check if the current month is a new month
     def _is_new_month(self, data):
