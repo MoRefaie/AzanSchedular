@@ -37,7 +37,7 @@ async def start_api():
     Starts the FastAPI application using uvicorn and logs its output asynchronously.
     """
     logger.info("Starting the API...")
-    config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="info", log_config=None, lifespan="on")
+    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info", log_config=None, lifespan="on")
     server = uvicorn.Server(config)
 
     try:
