@@ -251,7 +251,7 @@ class PrayerTimesFetcher:
         return day_prayers
 
     # Find the next prayer time
-    def _find_next_prayer(self, current_time, day_prayers_times):
+    def _find_next_prayer(self, type, current_time, day_prayers_times):
         """
         Finds the next prayer time for the current day, considering the prayer switches.
         """
@@ -261,12 +261,12 @@ class PrayerTimesFetcher:
 
         for prayer, time_str in day_prayers_times.items():
             azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))
-            if azan_switches.get(prayer, "Off") == "Off":
+            if azan_switches.get(prayer, "Off") == "Off" and type == "next":
                 logger.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
                 continue
 
             isha_gama_switch = os.getenv("ISHA_GAMA_SWITCH") # Isha Gama switch
-            if prayer.lower() == "isha" and isha_gama_switch == "On":
+            if prayer.lower() == "isha" and isha_gama_switch == "On" and type == "next":
                 logger.debug(f"Skipping prayer {prayer} as Gama is turned On in the switches.")
                 continue
 
@@ -322,7 +322,7 @@ class PrayerTimesFetcher:
         return None
 
     # Extract the next prayer time
-    def _extract_next_prayer(self, data, location: str):
+    def _extract_next_prayer(self, type, data, location: str):
         """
         Extracts the next prayer time from the provided timetable data.
         """
@@ -339,7 +339,7 @@ class PrayerTimesFetcher:
         logger.info(f"Prayer times for {location.upper()} on {today_date_text}: {day_prayers_times}.")
         
         logger.info(f"Finding the next prayer for {location.upper()} on {today_date_text}.")
-        next_prayer = self._find_next_prayer(today_date, day_prayers_times)
+        next_prayer = self._find_next_prayer(type, today_date, day_prayers_times)
         if next_prayer:
             logger.info(f"Next prayer for {location.upper()} on {today_date_text} is {next_prayer['prayer']} at {next_prayer['prayer_time']}.")
             return next_prayer
@@ -360,7 +360,7 @@ class PrayerTimesFetcher:
         return self._find_first_prayer(next_day_date, next_day_prayers_times)
 
     # Extract the Today prayer time
-    def _extract_today_prayer(self, data, location: str):
+    def _extract_today_prayer(self, type, data, location: str):
         """
         Extracts the prayer time from the provided timetable data.
         """
@@ -377,7 +377,7 @@ class PrayerTimesFetcher:
         logger.info(f"Prayer times for {location.upper()} on {today_date_text}: {day_prayers_times}.")
 
         logger.info(f"Checking there next prayer for {location.upper()} on {today_date_text}.")
-        next_prayer = self._find_next_prayer(today_date, day_prayers_times)
+        next_prayer = self._find_next_prayer(type, today_date, day_prayers_times)
         if next_prayer:
             logger.info(f"Next prayer found for {location.upper()} on {today_date_text} is {next_prayer['prayer']} at {next_prayer['prayer_time']}.")
             return {**day_prayers_times,"date":today_date_text}
@@ -435,9 +435,9 @@ class PrayerTimesFetcher:
                 return {"error": f"Failed to load or refresh {location.upper()} timetable."}
             data = self._reload_data(location)
         if type == "next":
-            return self._extract_next_prayer(data, location)
+            return self._extract_next_prayer(type, data, location)
         elif type == "today":
-            return self._extract_today_prayer(data, location)
+            return self._extract_today_prayer(type, data, location)
         else:  
             logger.error(f"Invalid type provided: {type}. Expected 'next' or 'today'.")
             return {"error": f"Invalid type. Expected 'next' or 'today'."}
