@@ -1,4 +1,4 @@
-name: SDA-Sentivue-Analysis
+name: AzanSchedularApp
 
 # This workflow uses actions that are not certified by GitHub.
 # They are provided by a third-party and are governed by
@@ -72,7 +72,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false
-
       - name: Update image name in Manifest
         uses: cschleiden/replace-tokens@v1
         with:
@@ -85,45 +84,3 @@ jobs:
         with:
           name: manifest
           path: manifest/
-
-          
-  deploy:
-
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
-      id-token: write
-
-    steps:
-      # Authenticate with GCP
-      - name: Get code
-        uses: 'actions/checkout@v4'
-
-      - name: Authenticate with GCP
-        uses: 'google-github-actions/auth@v2'
-        with:
-          project_id: ${{ secrets.GKE_PROJECT }}
-          workload_identity_provider: ${{ secrets.GKE_ID_PROVIDER }}
-
-      # Get the GKE credentials so we can deploy to the cluster
-      - name: Get GKE credentials
-        uses: 'google-github-actions/get-gke-credentials@v2'
-        with:
-          cluster_name: ${{ secrets.GKE_CLUSTER }}
-          location: ${{ secrets.GKE_ZONE }}
-      
-      - name: Download Artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: manifest
-
-      # Deploy the Docker image to the GKE cluster
-      - name: Deploy on the GKE
-        run: |-
-          kubectl apply -f analysis.yaml --namespace=sentivue-prod
-          kubectl rollout status deployment/analysis --namespace=sentivue-prod
-          kubectl get services -o wide
