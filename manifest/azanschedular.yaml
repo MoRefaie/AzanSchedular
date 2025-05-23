@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: AzanSchedular
+  labels:
+    app: AzanSchedular
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: AzanSchedular
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: AzanSchedular
+    spec:
+      containers:
+        - name: AzanSchedular
+          image: #{IMAGE}#
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8000
+          resources: {}
+      imagePullSecrets:
+          - name: github-packages
+      restartPolicy: Always
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: AzanSchedular
+  labels:
+    app: AzanSchedular
+spec:
+  type: ClusterIP
+  selector:
+    app: AzanSchedular
+  ports:
+    - name: "8000"
+      port: 8000
+      targetPort: 8000
