@@ -17,3 +17,7 @@ __pycache__/
 
 # UI
 AzanUI/
+
+#Dev and Test
+Dev/
+Test/
