@@ -13,4 +13,4 @@ COPY AzanSchedularApp/. .
 EXPOSE 8000
 
 # Start the API (adjust if you use Flask or another framework)
-CMD ["python", "azan_scheduler.py"]
+CMD ["python", "azan_app.py"]
