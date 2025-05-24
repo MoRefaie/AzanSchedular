@@ -7,7 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy the rest of the code
-COPY . .
+COPY AzanSchedularApp/. .
 
 # Expose the API port (change if your app uses a different port)
 EXPOSE 8000
