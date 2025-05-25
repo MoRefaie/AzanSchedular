@@ -1,9 +1,0 @@
-version: '3.8'
-services:
-  azan_scheduler:
-    build: ./AzanSchedular
-    ports:
-      - "8000:8000"
-    env_file:
-      - ./AzanSchedular/.env
-    restart: unless-stopped
