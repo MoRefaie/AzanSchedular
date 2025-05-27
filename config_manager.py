@@ -6,16 +6,17 @@ import json
 import re
 from dateutil import tz
 import asyncio
+import aiofiles
 from logging_config import get_logger  # Import the centralized logger
 
 # Get a logger for this module
 logger = get_logger(__name__)
 
 class ConfigManager:
-    def __init__(self, media_folder="media"):
+    def __init__(self):
         self.config_dir_path = os.path.join(os.getcwd(), 'config')
         self.config_file_path = os.path.join(self.config_dir_path, 'config.json')
-        self.media_folder = media_folder
+        self.media_folder = os.path.join(os.getcwd(), 'media')
         self.ensure_config_folder()
 
     def ensure_config_folder(self):
@@ -109,6 +110,14 @@ class ConfigManager:
                 print(f"Invalid URL: {url}")
                 return False
         return True
+    
+    def _is_validate_key(self, key:str, type=None) -> bool:
+        if type == "audio":
+            allowed_keys = ["REGULAR_AZAN_FILE", "FAJR_AZAN_FILE", "SHORT_AZAN_FILE", "DUAA_FILE"]
+        else:
+            # For other types, you can define allowed keys as needed
+            allowed_keys = ["SOURCES", "DEFAULT_TIMETABLE", "TIMEZONE", "AZAN_SWITCHES", "SHORT_AZAN_SWITCHES", "DUAA_SWITCHES", "ISHA_GAMA_SWITCH", "AUDIO_VOLUME", "DEVICES"]
+        return key in allowed_keys
 
     async def update_env_keys(self, updates: dict) -> dict:
         """
@@ -119,11 +128,9 @@ class ConfigManager:
         config = self.load_config()
 
         for key, value in updates.items():
-            # Block updates to specific keys
-            if key in ["REGULAR_AZAN_FILE", "FAJR_AZAN_FILE", "SHORT_AZAN_FILE"]:
-                logger.error(f"❌ Key '{key}' cannot be updated. It is managed elsewhere.")
-                status[key] = {"status": "blocked", "message": f"Key '{key}' cannot be updated."}
-                continue
+            if not _is_validate_key(key):
+                logger.error(f"❌ '{key}' is not a valid config key.")
+                return {"status": "fail", "message": f"'{key}' is not a valid config key."}
 
             # Validate SOURCES as a dictionary
             if key == "SOURCES":
@@ -202,34 +209,54 @@ class ConfigManager:
 
         return status
 
-    def update_media_file(self, file_name: str, new_file_path: str):
+    async def update_media_file(self, file_name: str, audio_file: str, file_bytes):
         """
-        Updates a file in the media folder and backs up the existing one.
+        Updates a file in the media folder and updates the config.json with the new file name.
 
         Args:
-            file_name (str): The name of the file to update in the media folder.
-            new_file_path (str): The path to the new file to replace the existing one.
+            file_name (str): The name of the file to save in the media folder.
+            audio_file (str): The config key to update (e.g., FAJR_AZAN_FILE).
+            file_bytes (bytes): The binary content of the file.
         """
-        media_folder = self.media_folder
         try:
+            if not self._is_validate_key(audio_file, "audio"):
+                logger.error(f"❌ '{audio_file}' is not a valid audio file key.")
+                return {"status": "fail", "message": f"'{audio_file}' is not a valid audio file key."}
+
+            # Replace spaces with underscores in file name
+            file_name = file_name.replace(" ", "_")
+
+            # Check for duplicate file name in other audio keys
+            config = self.load_config()
+            audio_keys = ["REGULAR_AZAN_FILE", "FAJR_AZAN_FILE", "SHORT_AZAN_FILE", "DUAA_FILE"]
+            for key in audio_keys:
+                if key != audio_file and config.get(key) == file_name:
+                    logger.error(f"❌ File name '{file_name}' is already assigned to '{key}'.")
+                    return {
+                        "status": "fail",
+                        "message": f"File name '{file_name}' is already assigned to '{key}'. Please use a different file name."
+                    }
+
             # Ensure the media folder exists
-            if not os.path.exists(media_folder):
-                os.makedirs(media_folder)
+            if not os.path.exists(self.media_folder):
+                os.makedirs(self.media_folder)
 
-            # Path to the existing file in the media folder
-            existing_file_path = os.path.join(media_folder, file_name)
+            # Save the file
+            file_path = os.path.join(self.media_folder, file_name)
+            async with aiofiles.open(file_path, "wb") as out_file:
+                await out_file.write(file_bytes)
+            logger.info(f"✅ Saved media file: {file_name}")
 
-            # Backup the existing file if it exists
-            if os.path.exists(existing_file_path):
-                backup_file_path = f"{existing_file_path}.backup"
-                shutil.move(existing_file_path, backup_file_path)
-                logger.info(f"🔄 Backed up existing file to: {backup_file_path}")
+            # Update config.json directly
+            config = self.load_config()
+            config[audio_file] = file_name
+            self.save_config(config)
+            logger.info(f"✅ Updated {audio_file} in config.json file to: {file_name}")
+            return {"status": "success", "message": f"{audio_file} updated to {file_name}"}
 
-            # Move the new file to the media folder
-            shutil.move(new_file_path, existing_file_path)
-            logger.info(f"✅ Updated media file: {file_name}")
         except Exception as e:
             logger.error(f"❌ Failed to update media file {file_name}: {e}")
+            return {"status": "fail", "message": str(e)}
 
     def get_config_values(self, keys: list) -> dict:
         """

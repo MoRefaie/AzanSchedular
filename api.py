@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import asyncio
@@ -113,6 +113,32 @@ async def update_config(request: ConfigManagerUpdateRequest):
     except Exception as e:
         logger.error(f"❌ Failed to update configuration: {e}")
         raise HTTPException(status_code=500, detail="Failed to update configuration.")
+    
+@app.post("/api/update-audio")
+async def update_audio(file: UploadFile = File(...), fileType: str = Form(...)):
+    """
+    API endpoint to update a media file.
+    Expects a multipart/form-data request with an audio file and a fileType.
+    """
+    logger.info("Received request to /update-media-file endpoint.")
+    try:
+        # Check if the uploaded file is an audio file
+        if not file.content_type.startswith("audio/"):
+            logger.error(f"Uploaded file is not an audio file: {file.content_type}")
+            raise HTTPException(status_code=400, detail="Uploaded file must be an audio file.")
+
+        file_bytes = await file.read()
+        file_name = file.filename
+
+        logger.info(f"Updating media file: {file_name}, fileType: {fileType}")
+
+        # Pass the file name, fileType, and binary data to config_manager
+        update_status = await config_manager.update_media_file(file_name, fileType, file_bytes)
+
+        return {"status": "success", "update_status": update_status}
+    except Exception as e:
+        logger.error(f"❌ Failed to update media file: {e}")
+        raise HTTPException(status_code=500, detail="Failed to update media file.")
 
 @app.get("/api/scheduler-status")
 async def api_start_scheduler():
