@@ -1,12 +1,30 @@
+import sys
+import os
 import asyncio
 import uvicorn
 from api import app  # Import the API app
 from scheduler_manager import start_scheduler  # Import the start_scheduler function
 from logging_config import get_logger  # Import the centralized logger
+from config_manager import ConfigManager
+import threading
+import pystray
+from PIL import Image
 
 
 # Get a logger for this module
 logger = get_logger(__name__)
+
+# Get the configuration manager instances
+config = ConfigManager()
+
+if hasattr(sys, '_MEIPASS'):
+    # Running in a PyInstaller bundle
+    media_dir = os.path.join(sys._MEIPASS, config.load_config("MEDIA_FOLDER"))
+else:
+    # Running in normal Python environment
+    media_dir = os.path.join(os.getcwd(), config.load_config("MEDIA_FOLDER"))
+    
+shutdown_trigger = False
 
 async def shutdown():
     """
@@ -51,21 +69,21 @@ async def start_api():
 
         if server.started:
             logger.info("API started successfully.")
-            return server_task
+            return server, server_task
         else:
             logger.error("Failed to start API.")
-            return None
+            return None, None
 
     except BaseException as e:
         # Catch BaseException explicitly and log the error
         logger.error("Failed to start API.")
-        return None
-
+        return None, None
+    
     except Exception as e:
         # Catch other exceptions and log them
         logger.error("Failed to start API.")
         logger.error(f"Exception: {e}")
-        return None
+        return None, None
 
 # Ensure event loop runs properly
 
@@ -100,11 +118,12 @@ async def main():
     """
     Runs the API application, the AzanUI, and the AzanScheduler sequentially.
     """
+    global shutdown_trigger
     logger.info("Starting the API, AzanUI, and AzanScheduler sequentially...")
 
     try:
         # Start the API and wait for it to be ready
-        api_task = await start_api()
+        api_server, api_task = await start_api()
         if api_task is None:    
             logger.error("Exiting...")
         else:
@@ -115,29 +134,47 @@ async def main():
             # Start the AzanScheduler and wait for it
             await start_scheduler()
 
-            while True:
+            while not shutdown_trigger:
                 await asyncio.sleep(2) 
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
     
     finally:
+        # Gracefully shutdown Uvicorn
+        if api_server:
+            logger.info("Signaling Uvicorn server to shut down gracefully...")
+            api_server.should_exit = True
+            await api_task  # Wait for Uvicorn to finish gracefully
         # Call the shutdown function
         await shutdown()
 
+def on_quit(icon, item):
+    global shutdown_trigger
+    icon.stop()
+    shutdown_trigger = True
+
+def setup_tray_icon():
+    # Use your icon file path here
+    icon_path = os.path.join(media_dir, "icon.ico")
+    image = Image.open(icon_path)
+    menu = pystray.Menu(pystray.MenuItem('Quit', on_quit))
+    icon = pystray.Icon("AzanSchedular", image, "Azan Schedular", menu)
+    icon.run()
+
 if __name__ == "__main__":
+    # Start tray icon in a separate thread so it doesn't block your main app
+    tray_thread = threading.Thread(target=setup_tray_icon, daemon=True)
+    tray_thread.start()
     try:
-        # Run the main function in the asyncio event loop
         asyncio.run(main())
-    except SystemExit as e:
+    except SystemExit:
         pass
-    except BaseException as e:
-        # Catch SystemExit explicitly and log the error
+    except BaseException:
         pass
     except RuntimeError as e:
         logger.error(f"RuntimeError occurred: {e}")
     except Exception as e:
-        # Catch other exceptions and log them
         logger.error(f"Exception occurred: {e}")    
     finally:
         logger.info("Shutting down completed.")

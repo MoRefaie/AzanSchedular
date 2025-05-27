@@ -1,18 +1,26 @@
+import sys
 import os
 import asyncio
 import json
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
+from config_manager import ConfigManager
 from prayer_times_fetcher import PrayerTimesFetcher
 from apple_manager import AppleManager
 from logging_config import get_logger  # Import the centralized logger
 
-# Load environment variables from .env file
-load_dotenv()
-
 # Get a logger for this module
 logger = get_logger(__name__)
 
+# Get the configuration manager instances
+config = ConfigManager()
+
+if hasattr(sys, '_MEIPASS'):
+    # Running in a PyInstaller bundle
+    media_dir = os.path.join(sys._MEIPASS, config.load_config("MEDIA_FOLDER"))
+else:
+    # Running in normal Python environment
+    media_dir = os.path.join(os.getcwd(), config.load_config("MEDIA_FOLDER"))
+    
 class AzanScheduler:
     def __init__(self):
         """
@@ -26,17 +34,16 @@ class AzanScheduler:
         Plays the Azan on the configured devices based on the prayer name and SHORT_AZAN_SWITCHES.
         """
         # Fetch environment variables dynamically
-        devices = json.loads(os.getenv("DEVICES"))  # List of device identifiers
-        azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))  # JSON string for prayer switches
-        short_azan_switch = json.loads(os.getenv("SHORT_AZAN_SWITCHES"))  # Short Azan switches
-        duaa_switch = json.loads(os.getenv("DUAA_SWITCHES"))  # Short Azan switches
-        isha_gama_switch = os.getenv("ISHA_GAMA_SWITCH") # Isha Gama switch
-        media_folder = os.getenv("MEDIA_FOLDER")  # Media folder path
-        azan_file_short = os.path.join(os.getcwd(), media_folder, os.getenv('SHORT_AZAN_FILE'))
-        azan_file_fajr = os.path.join(os.getcwd(), media_folder, os.getenv('FAJR_AZAN_FILE'))
-        azan_file_regular = os.path.join(os.getcwd(), media_folder, os.getenv('REGULAR_AZAN_FILE'))
-        duaa_file = os.path.join(os.getcwd(), media_folder, os.getenv('DUAA_FILE'))
-        audio_volume = float(os.getenv("AUDIO_VOLUME"))  # Default audio volume level (0.0 to 1.0)
+        devices = config.load_config("DEVICES")  # List of device identifiers
+        azan_switches = config.load_config("AZAN_SWITCHES")  # JSON string for prayer switches
+        short_azan_switch = config.load_config("SHORT_AZAN_SWITCHES")  # Short Azan switches
+        duaa_switch = config.load_config("DUAA_SWITCHES")  # Short Azan switches
+        isha_gama_switch = config.load_config("ISHA_GAMA_SWITCH") # Isha Gama switch
+        azan_file_short = os.path.join(media_dir, config.load_config('SHORT_AZAN_FILE'))
+        azan_file_fajr = os.path.join(media_dir, config.load_config('FAJR_AZAN_FILE'))
+        azan_file_regular = os.path.join(media_dir, config.load_config('REGULAR_AZAN_FILE'))
+        duaa_file = os.path.join(media_dir, config.load_config('DUAA_FILE'))
+        audio_volume = config.load_config("AUDIO_VOLUME")  # Default audio volume level (0.0 to 100.0)
 
         if prayer_name.lower() == "isha" and isha_gama_switch == "On":
             logger.info(f"🔕 Azan for {prayer_name} as Gama is Enabled in the configuration.")

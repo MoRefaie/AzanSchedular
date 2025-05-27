@@ -1,11 +1,8 @@
+import json
 import logging
 import os
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
-from dotenv import load_dotenv
-
-# Load environment variables from the .env file
-load_dotenv()
 
 # Ensure the logs folder exists
 log_folder = "logs"
@@ -27,8 +24,17 @@ file_handler = RotatingFileHandler(
 )
 file_handler.setFormatter(log_formatter)
 
-# Read console logging configuration from the .env file
-console_logging = os.getenv("CONSOLE_LOGGING").lower() == "on"
+# Read console logging configuration from config.json directly
+def get_console_logging_setting():
+    config_path = os.path.join(os.getcwd(), "config", "config.json")
+    try:
+        with open(config_path, "r") as f:
+            config = json.load(f)
+        return config.get("CONSOLE_LOGGING", "Off").lower() == "on"
+    except Exception:
+        return False
+
+console_logging = get_console_logging_setting()
 
 # Function to configure the logger
 def configure_logger():

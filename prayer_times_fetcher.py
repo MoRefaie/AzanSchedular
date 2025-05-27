@@ -1,5 +1,6 @@
+import sys
 import os
-from dotenv import load_dotenv
+from config_manager import ConfigManager
 from datetime import datetime, timedelta
 from dateutil import tz
 import requests
@@ -12,19 +13,25 @@ from tenacity import retry, stop_after_attempt, wait_fixed
 import time
 from logging_config import get_logger  # Import the centralized logger
 
-# Load environment variables from .env file
-load_dotenv()
-
 # Get a logger for this module
 logger = get_logger(__name__)
 
+# Get the configuration manager instance
+config = ConfigManager()
+
+if hasattr(sys, '_MEIPASS'):
+    # Running in a PyInstaller bundle
+    config_dir = os.path.join(sys._MEIPASS, 'config')
+else:
+    # Running in normal Python environment
+    config_dir = os.path.join(os.getcwd(), 'config')
 
 class PrayerTimesFetcher:
     def _get_timezone(self):
         """
         Dynamically fetches the timezone from the environment.
         """
-        timezone = os.getenv("TIMEZONE")
+        timezone = config.load_config("TIMEZONE")
         tz_info = tz.gettz(timezone)
         if tz_info is None:
             raise ValueError(f"Invalid timezone: {timezone}")
@@ -36,10 +43,10 @@ class PrayerTimesFetcher:
         """
         Downloads the timetable for the specified location.
         """
-        sources_url = json.loads(os.getenv("SOURCES")) # API URLs
+        sources_url = config.load_config("SOURCES") # API URLs
 
         # Dynamically construct the timetable file path
-        timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), f"{location}_timetable.json")
+        timetable_file = os.path.join(config_dir, f"{location}_timetable.json")
 
         logger.debug(f"Attempting to download {location.upper()} timetable.")
         try:
@@ -81,7 +88,7 @@ class PrayerTimesFetcher:
         {Month: {Day: {Prayer Name: Time}}}
         """
         # Dynamically construct the timetable file path
-        timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), f"{location}_timetable.json")
+        timetable_file = os.path.join(config_dir, f"{location}_timetable.json")
         try:
             with open(timetable_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
@@ -140,7 +147,7 @@ class PrayerTimesFetcher:
             return False
 
         # Save the formatted timetable to a new JSON file
-        formatted_file_path = os.path.join(os.getenv("CONFIG_FOLDER"), f"{location}_formatted_timetable.json")
+        formatted_file_path = os.path.join(config_dir, f"{location}_formatted_timetable.json")
         try:
             with open(formatted_file_path, "w", encoding="utf-8") as file:
                 json.dump(formatted_timetable, file, indent=4, ensure_ascii=False)
@@ -157,7 +164,7 @@ class PrayerTimesFetcher:
         Reloads the timetable data from the file for the specified location.
         """
         # Dynamically construct the timetable file path
-        timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), f"{location}_formatted_timetable.json")
+        timetable_file = os.path.join(config_dir, f"{location}_formatted_timetable.json")
 
         try:
             with open(timetable_file, "r", encoding="utf-8") as f:
@@ -192,7 +199,7 @@ class PrayerTimesFetcher:
         Checks if the timetable file is outdated.
         """
         # Dynamically construct the timetable file path
-        timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), f"{location}_formatted_timetable.json")
+        timetable_file = os.path.join(config_dir, f"{location}_formatted_timetable.json")
 
         try:
             # Get the file's last modification time
@@ -260,12 +267,12 @@ class PrayerTimesFetcher:
         next_prayer_time = None
 
         for prayer, time_str in day_prayers_times.items():
-            azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))
+            azan_switches = config.load_config("AZAN_SWITCHES")
             if azan_switches.get(prayer, "Off") == "Off" and type == "next":
                 logger.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
                 continue
 
-            isha_gama_switch = os.getenv("ISHA_GAMA_SWITCH") # Isha Gama switch
+            isha_gama_switch = config.load_config("ISHA_GAMA_SWITCH") # Isha Gama switch
             if prayer.lower() == "isha" and isha_gama_switch == "On" and type == "next":
                 logger.debug(f"Skipping prayer {prayer} as Gama is turned On in the switches.")
                 continue
@@ -296,7 +303,7 @@ class PrayerTimesFetcher:
         """
         Finds the first prayer time for the next day, considering the prayer switches.
         """
-        azan_switches = json.loads(os.getenv("AZAN_SWITCHES"))     # JSON string for prayer switches
+        azan_switches = config.load_config("AZAN_SWITCHES")    # JSON string for prayer switches
         logger.debug("Finding the first prayer for the next day.")
         first_prayer = None
         first_prayer_time = None
@@ -412,12 +419,12 @@ class PrayerTimesFetcher:
         Fetches today's prayer times for the specified location.
         Refreshes the timetable if it is a new month, if the data is missing, or if the file is outdated.
         """
-        location = os.getenv("DEFAULT_TIMETABLE")
+        location = config.load_config("DEFAULT_TIMETABLE")
         # Dynamically construct the timetable file path
-        timetable_file = os.path.join(os.getenv("CONFIG_FOLDER"), f"{location}_formatted_timetable.json")
+        timetable_file = os.path.join(config_dir, f"{location}_formatted_timetable.json")
 
         # Parse the SOURCES environment variable as a dictionary
-        sources = list(json.loads(os.getenv("SOURCES")).keys())  # Extract the keys as a list
+        sources = list(config.load_config("SOURCES").keys())  # Extract the keys as a list
 
         if location not in sources:
             logger.error(f"Invalid location provided: {location}. Available locations: {sources}")

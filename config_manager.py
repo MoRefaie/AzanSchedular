@@ -1,30 +1,55 @@
+import sys
 import os
 import shutil
 import logging
-from dotenv import load_dotenv, set_key
 import json
 import re
 from dateutil import tz
 import asyncio
-from scheduler_manager import restart_scheduler
 from logging_config import get_logger  # Import the centralized logger
 
 # Get a logger for this module
 logger = get_logger(__name__)
-        
+
 class ConfigManager:
-    def __init__(self, env_file_path=".env", media_folder="media"):
+    def __init__(self, config_file_path="config.json", media_folder="media"):
         """
         Initializes the ConfigManager class.
 
         Args:
-            env_file_path (str): Path to the .env file.
+            config_file_path (str): Path to the config.json file.
             media_folder (str): Path to the media folder.
         """
-        self.env_file_path = os.path.join(os.getcwd(), env_file_path)
+        if hasattr(sys, '_MEIPASS'):
+            # Running in a PyInstaller bundle
+            config_dir = os.path.join(sys._MEIPASS, 'config')
+        else:
+            # Running in normal Python environment
+            config_dir = os.path.join(os.getcwd(), 'config')
+        self.config_file_path = os.path.join(config_dir, config_file_path)
+        self.media_folder = media_folder
+        # Ensure the config directory exists (only in non-bundled mode)
+        if not hasattr(sys, '_MEIPASS'):
+            os.makedirs(config_dir, exist_ok=True)
+            if not os.path.exists(self.config_file_path):
+                with open(self.config_file_path, "w") as f:
+                    json.dump({}, f)
 
-        # Load environment variables from the .env file
-        load_dotenv()
+    def load_config(self, key=None):
+        """
+        Loads the configuration from the config.json file.
+        If a key is provided, returns the value for that key.
+        If no key is provided, returns the entire config dictionary.
+        """
+        with open(self.config_file_path, "r") as f:
+            config = json.load(f)
+        if key is not None:
+            return config.get(key)
+        return config
+
+    def save_config(self, config):
+        with open(self.config_file_path, "w") as f:
+            json.dump(config, f, indent=4)
 
     def _validate_url(self, value):
         """
@@ -70,13 +95,14 @@ class ConfigManager:
                 print(f"Invalid URL: {url}")
                 return False
         return True
-        
+
     async def update_env_keys(self, updates: dict) -> dict:
         """
-        Updates multiple keys in the .env file with the given values and returns a status for each key.
+        Updates multiple keys in the config.json file with the given values and returns a status for each key.
         """
         status = {}
         required_prayer_keys = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"]
+        config = self.load_config()
 
         for key, value in updates.items():
             # Block updates to specific keys
@@ -94,10 +120,10 @@ class ConfigManager:
 
             # Validate DEFAULT_TIMETABLE to be a valid source key
             if key == "DEFAULT_TIMETABLE":
-                if "SOURCES" in updates.keys()and self._validate_dict_source(updates["SOURCES"]):
+                if "SOURCES" in updates.keys() and self._validate_dict_source(updates["SOURCES"]):
                     sources = list(updates["SOURCES"].keys())
                 else:
-                    sources = list(json.loads(os.getenv("SOURCES")).keys())
+                    sources = list(config.get("SOURCES", {}).keys())
                 if value not in sources:
                     logger.error(f"❌ Key '{key}' must be one of the available sources: {sources}.")
                     status[key] = {"status": "fail", "message": f"Key '{key}' must be one of the available sources: {sources}."}
@@ -106,14 +132,12 @@ class ConfigManager:
             # Validate TIMEZONE to be a valid timezone using dateutil.tz
             if key == "TIMEZONE":
                 try:
-                    # Attempt to get the timezone using dateutil.tz
                     if tz.gettz(value) is None:
                         raise ValueError
                 except ValueError:
                     logger.error(f"❌ Key '{key}' must be a valid timezone.")
                     status[key] = {"status": "fail", "message": f"Key '{key}' must be a valid timezone."}
                     continue
-
 
             # Validate AZAN_SWITCHES and SHORT_AZAN_SWITCHES to be valid dictionaries
             if key in ["AZAN_SWITCHES", "SHORT_AZAN_SWITCHES", "DUAA_SWITCHES"]:
@@ -124,7 +148,7 @@ class ConfigManager:
                         "message": f"Key '{key}' must be a dictionary with keys {required_prayer_keys} and values 'On' or 'Off'."
                     }
                     continue
-                
+
             if key == "ISHA_GAMA_SWITCH":
                 if not self._validate_single_switch(value):
                     logger.error(f"❌ Key '{key}' values must be 'On' or 'Off'.")
@@ -151,14 +175,11 @@ class ConfigManager:
                     value = [value]
 
             try:
-                # Convert value to a JSON string if it's a list or dict
-                value = json.dumps(value) if isinstance(value, (list, dict)) else f'"{value}"'
-
-                # Update the key in the .env file
-                set_key(self.env_file_path, key, value, quote_mode="never")
-
-                # Reload the environment variable
-                logger.info(f"✅ Updated {key} in .env file to: {value}")
+                config[key] = value
+                self.save_config(config)
+                logger.info(f"✅ Updated {key} in config.json file to: {value}")
+                # Move import here to avoid circular import
+                from scheduler_manager import restart_scheduler
                 await restart_scheduler()
                 status[key] = {"status": "updated", "message": f"Key '{key}' updated successfully."}
             except Exception as e:
@@ -175,7 +196,7 @@ class ConfigManager:
             file_name (str): The name of the file to update in the media folder.
             new_file_path (str): The path to the new file to replace the existing one.
         """
-        media_folder = os.getenv("MEDIA_FOLDER", media_folder)
+        media_folder = self.media_folder
         try:
             # Ensure the media folder exists
             if not os.path.exists(media_folder):
@@ -198,31 +219,22 @@ class ConfigManager:
 
     def get_config_values(self, keys: list) -> dict:
         """
-        Retrieves the values for the specified keys from the .env file.
+        Retrieves the values for the specified keys from the config.json file.
 
         Args:
-            keys (list): A list of keys to retrieve from the .env file.
+            keys (list): A list of keys to retrieve from the config.json file.
 
         Returns:
             dict: A dictionary containing the key-value pairs for the specified keys.
         """
         try:
-            # Load the environment variables
-            load_dotenv(self.env_file_path, override=True)
-
-            # Retrieve the values for the specified keys
+            config = self.load_config()
             config_values = {}
             for key in keys:
-                value = os.getenv(key)
-                if value is not None:
-                    try:
-                        parsed_value = json.loads(value)
-                        config_values[key] = parsed_value
-                    except (json.JSONDecodeError, TypeError):
-                        # If parsing fails, keep the value as a string
-                        config_values[key] = value
+                if key in config:
+                    config_values[key] = config[key]
                 else:
-                    logger.warning(f"⚠️ Key '{key}' not found in the .env file.")
+                    logger.warning(f"⚠️ Key '{key}' not found in the config.json file.")
 
             logger.info(f"✅ Successfully retrieved configuration values for keys: {keys}")
             return config_values
