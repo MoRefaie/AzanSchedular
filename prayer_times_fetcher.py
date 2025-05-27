@@ -18,13 +18,7 @@ logger = get_logger(__name__)
 
 # Get the configuration manager instance
 config = ConfigManager()
-
-if hasattr(sys, '_MEIPASS'):
-    # Running in a PyInstaller bundle
-    config_dir = os.path.join(sys._MEIPASS, 'config')
-else:
-    # Running in normal Python environment
-    config_dir = os.path.join(os.getcwd(), 'config')
+config_dir = os.path.join(os.getcwd(), 'config')
 
 class PrayerTimesFetcher:
     def _get_timezone(self):

@@ -12,28 +12,42 @@ from logging_config import get_logger  # Import the centralized logger
 logger = get_logger(__name__)
 
 class ConfigManager:
-    def __init__(self, config_file_path="config.json", media_folder="media"):
-        """
-        Initializes the ConfigManager class.
-
-        Args:
-            config_file_path (str): Path to the config.json file.
-            media_folder (str): Path to the media folder.
-        """
-        if hasattr(sys, '_MEIPASS'):
-            # Running in a PyInstaller bundle
-            config_dir = os.path.join(sys._MEIPASS, 'config')
-        else:
-            # Running in normal Python environment
-            config_dir = os.path.join(os.getcwd(), 'config')
-        self.config_file_path = os.path.join(config_dir, config_file_path)
+    def __init__(self, media_folder="media"):
+        self.config_dir_path = os.path.join(os.getcwd(), 'config')
+        self.config_file_path = os.path.join(self.config_dir_path, 'config.json')
         self.media_folder = media_folder
-        # Ensure the config directory exists (only in non-bundled mode)
-        if not hasattr(sys, '_MEIPASS'):
-            os.makedirs(config_dir, exist_ok=True)
-            if not os.path.exists(self.config_file_path):
-                with open(self.config_file_path, "w") as f:
-                    json.dump({}, f)
+        self.ensure_config_folder()
+
+    def ensure_config_folder(self):
+        """
+        Ensures the config folder and config.json exist in the current working directory.
+        If not, copies them from the PyInstaller _MEIPASS directory.
+        """
+
+        if hasattr(sys, '_MEIPASS'):
+            source_config_dir = os.path.join(sys._MEIPASS, 'config')
+            source_config_file = os.path.join(source_config_dir, 'config.json')
+
+            # If config directory doesn't exist, copy the entire directory
+            if not os.path.exists(self.config_dir_path):
+                try:
+                    shutil.copytree(source_config_dir, self.config_dir_path)
+                    logger.info(f"✅ Config folder has been recreated.")
+                except Exception as e:
+                    logger.error(f"❌ Failed to recreate config folder: {e}")
+                    raise
+            # If config.json file is missing, copy only the file
+            elif not os.path.exists(self.config_file_path):
+                try:
+                    shutil.copy2(source_config_file, self.config_file_path)
+                    logger.info(f"✅ config.json file has been recreated.")
+                except Exception as e:
+                    logger.error(f"❌ Failed to recreate config.json file: {e}")
+                    raise
+        else:
+            if not os.path.exists(self.config_dir_path) or not os.path.exists(self.config_file_path):
+                logger.error("❌ Config folder or config.json missing and can't be recreated.")
+                raise FileNotFoundError("Config folder or config.json missing and can't be recreated.")
 
     def load_config(self, key=None):
         """
@@ -43,7 +57,7 @@ class ConfigManager:
         """
         with open(self.config_file_path, "r") as f:
             config = json.load(f)
-        if key is not None:
+        if key:
             return config.get(key)
         return config
 
