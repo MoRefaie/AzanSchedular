@@ -8,37 +8,34 @@
   "DEFAULT_TIMETABLE": "icci",
   "TIMEZONE": "Europe/Dublin",
   "AZAN_SWITCHES": {
-    "Fajr": "Off",
-    "Sunrise": "Off",
+    "Fajr": "On",
+    "Sunrise": "On",
     "Dhuhr": "On",
     "Asr": "On",
     "Maghrib": "On",
     "Isha": "On"
   },
   "SHORT_AZAN_SWITCHES": {
-    "Fajr": "Off",
-    "Sunrise": "Off",
-    "Dhuhr": "Off",
-    "Asr": "Off",
-    "Maghrib": "Off",
-    "Isha": "Off"
-  },
-  "DUAA_SWITCHES": {
-    "Fajr": "Off",
-    "Sunrise": "Off",
+    "Fajr": "On",
+    "Sunrise": "On",
     "Dhuhr": "On",
     "Asr": "On",
     "Maghrib": "On",
     "Isha": "On"
   },
-  "ISHA_GAMA_SWITCH": "On",
-  "MEDIA_FOLDER": "media",
+  "DUAA_SWITCHES": {
+    "Fajr": "On",
+    "Sunrise": "On",
+    "Dhuhr": "On",
+    "Asr": "On",
+    "Maghrib": "On",
+    "Isha": "On"
+  },
+  "ISHA_GAMA_SWITCH": "Off",
   "AUDIO_VOLUME": 40.0,
   "SHORT_AZAN_FILE": "Short_Azan.mp3",
   "FAJR_AZAN_FILE": "Fajr_Azan.mp3",
   "REGULAR_AZAN_FILE": "Regular_Azan.mp3",
   "DUAA_FILE": "Duaa.mp3",
-  "DEVICES": [
-    "024203835863"
-  ]
+  "DEVICES": []
 }

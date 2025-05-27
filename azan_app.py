@@ -19,10 +19,10 @@ config = ConfigManager()
 
 if hasattr(sys, '_MEIPASS'):
     # Running in a PyInstaller bundle
-    media_dir = os.path.join(sys._MEIPASS, config.load_config("MEDIA_FOLDER"))
+    media_dir = os.path.join(sys._MEIPASS, 'media')
 else:
     # Running in normal Python environment
-    media_dir = os.path.join(os.getcwd(), config.load_config("MEDIA_FOLDER"))
+    media_dir = os.path.join(os.getcwd(), 'media')
     
 shutdown_trigger = False
 

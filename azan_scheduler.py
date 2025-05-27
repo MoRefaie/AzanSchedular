@@ -14,13 +14,14 @@ logger = get_logger(__name__)
 # Get the configuration manager instances
 config = ConfigManager()
 
+media_dir = os.path.join(os.getcwd(), 'media')
+
 if hasattr(sys, '_MEIPASS'):
     # Running in a PyInstaller bundle
-    media_dir = os.path.join(sys._MEIPASS, config.load_config("MEDIA_FOLDER"))
+    default_media_dir = os.path.join(sys._MEIPASS, 'media')
 else:
-    # Running in normal Python environment
-    media_dir = os.path.join(os.getcwd(), config.load_config("MEDIA_FOLDER"))
-    
+    default_media_dir = media_dir  # fallback to media_dir if not running in PyInstaller
+
 class AzanScheduler:
     def __init__(self):
         """
@@ -40,9 +41,17 @@ class AzanScheduler:
         duaa_switch = config.load_config("DUAA_SWITCHES")  # Short Azan switches
         isha_gama_switch = config.load_config("ISHA_GAMA_SWITCH") # Isha Gama switch
         azan_file_short = os.path.join(media_dir, config.load_config('SHORT_AZAN_FILE'))
+        if not os.path.exists(azan_file_short):
+            azan_file_short = os.path.join(default_media_dir, config.load_config('SHORT_AZAN_FILE'))
         azan_file_fajr = os.path.join(media_dir, config.load_config('FAJR_AZAN_FILE'))
+        if not os.path.exists(azan_file_fajr):
+            azan_file_fajr = os.path.join(default_media_dir, config.load_config('FAJR_AZAN_FILE'))
         azan_file_regular = os.path.join(media_dir, config.load_config('REGULAR_AZAN_FILE'))
+        if not os.path.exists(azan_file_regular):
+            azan_file_regular = os.path.join(default_media_dir, config.load_config('REGULAR_AZAN_FILE'))
         duaa_file = os.path.join(media_dir, config.load_config('DUAA_FILE'))
+        if not os.path.exists(duaa_file):
+            duaa_file = os.path.join(default_media_dir, config.load_config('DUAA_FILE'))
         audio_volume = config.load_config("AUDIO_VOLUME")  # Default audio volume level (0.0 to 100.0)
 
         if prayer_name.lower() == "isha" and isha_gama_switch == "On":
