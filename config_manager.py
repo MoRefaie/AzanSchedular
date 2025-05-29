@@ -128,7 +128,7 @@ class ConfigManager:
         config = self.load_config()
 
         for key, value in updates.items():
-            if not _is_validate_key(key):
+            if not self._is_validate_key(key):
                 logger.error(f"❌ '{key}' is not a valid config key.")
                 return {"status": "fail", "message": f"'{key}' is not a valid config key."}
 
