@@ -16,12 +16,12 @@
     "Isha": "On"
   },
   "SHORT_AZAN_SWITCHES": {
-    "Fajr": "On",
-    "Sunrise": "On",
-    "Dhuhr": "On",
-    "Asr": "On",
-    "Maghrib": "On",
-    "Isha": "On"
+    "Fajr": "Off",
+    "Sunrise": "Off",
+    "Dhuhr": "Off",
+    "Asr": "Off",
+    "Maghrib": "Off",
+    "Isha": "Off"
   },
   "DUAA_SWITCHES": {
     "Fajr": "On",
