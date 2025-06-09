@@ -5,12 +5,19 @@ import asyncio
 import logging
 from scheduler_manager import start_scheduler, stop_scheduler, scheduler_status  # Import scheduler functions
 from apple_manager import AppleManager
-from config_manager import ConfigManager
+from config_manager import ConfigManager, SystemConfigManager  # Import the configuration manager
 from prayer_times_fetcher import PrayerTimesFetcher
 from logging_config import get_logger  # Import the centralized logger
 
 # Get a logger for this module
 logger = get_logger(__name__)
+
+# Initialize the AppleManager,ConfigManager and AzanScheduler
+apple_manager = AppleManager()
+config = ConfigManager()
+sys_config = SystemConfigManager()
+cors_config = sys_config.load_sys_config("API_CORS") or {}
+prayer_fetcher = PrayerTimesFetcher()
 
 
 # Create a FastAPI app instance
@@ -19,17 +26,11 @@ app = FastAPI()
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Frontend origin
-    allow_credentials=True,
-    allow_methods=["*"],  # Allow all HTTP methods
-    allow_headers=["*"],  # Allow all headers
+    allow_origins=cors_config.get("allow_origins", ["*"]),
+    allow_credentials=cors_config.get("allow_credentials", True),
+    allow_methods=cors_config.get("allow_methods", ["*"]),
+    allow_headers=cors_config.get("allow_headers", ["*"]),
 )
-
-
-# Initialize the AppleManager,ConfigManager and AzanScheduler
-apple_manager = AppleManager()
-config_manager = ConfigManager()
-prayer_fetcher = PrayerTimesFetcher()
 
 class ConfigManagerGetRequest(BaseModel):
     list: list  # A dictionary of keys and values to update in the .env file
@@ -88,7 +89,7 @@ async def get_config(request: ConfigManagerGetRequest):
     try:
         # Call the get_config_values method with the received keys
         logger.info(f"Received request to get config values for keys: {request.list}")
-        config_values = config_manager.get_config_values(request.list)
+        config_values = config.get_config_values(request.list)
         logger.info(f"Config values retrieved successfully: {config_values}")
         return {"status": "success", "data": config_values}
     
@@ -106,7 +107,7 @@ async def update_config(request: ConfigManagerUpdateRequest):
     try:
         # Call the update_env_keys method with the received updates
         logger.info(f"Received update request: {request.updates}")
-        update_status = await config_manager.update_env_keys(request.updates)
+        update_status = await config.update_env_keys(request.updates)
 
         # Return the status of the updates
         return {"status": "success", "update_status": update_status}
@@ -133,7 +134,7 @@ async def update_audio(file: UploadFile = File(...), fileType: str = Form(...)):
         logger.info(f"Updating media file: {file_name}, fileType: {fileType}")
 
         # Pass the file name, fileType, and binary data to config_manager
-        update_status = await config_manager.update_media_file(file_name, fileType, file_bytes)
+        update_status = await config.update_media_file(file_name, fileType, file_bytes)
 
         return {"status": "success", "update_status": update_status}
     except Exception as e:

@@ -4,6 +4,8 @@ import os
 from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
+
+
 # Ensure the logs folder exists
 log_folder = "logs"
 os.makedirs(log_folder, exist_ok=True)
@@ -24,17 +26,22 @@ file_handler = RotatingFileHandler(
 )
 file_handler.setFormatter(log_formatter)
 
-# Read console logging configuration from config.json directly
+# --- Read CONSOLE_LOGGING directly from system.json ---
 def get_console_logging_setting():
-    config_path = os.path.join(os.getcwd(), "config", "config.json")
+    # Try to find system.json in MEIPASS or local config
+    if hasattr(__builtins__, '_MEIPASS'):
+        config_path = os.path.join(__builtins__._MEIPASS, 'config', 'system.json')
+    else:
+        config_path = os.path.join(os.getcwd(), 'config', 'system.json')
     try:
         with open(config_path, "r") as f:
-            config = json.load(f)
-        return config.get("CONSOLE_LOGGING", "Off").lower() == "on"
+            sys_config = json.load(f)
+        return str(sys_config.get("CONSOLE_LOGGING", "Off")).lower() == "on"
     except Exception:
         return False
 
 console_logging = get_console_logging_setting()
+
 
 # Function to configure the logger
 def configure_logger():

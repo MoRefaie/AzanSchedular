@@ -25,4 +25,4 @@ Test/
 # Dynamic Configurations
 config/*.json
 !config/config.json
-
+!config/system.json

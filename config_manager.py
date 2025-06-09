@@ -12,13 +12,34 @@ from logging_config import get_logger  # Import the centralized logger
 # Get a logger for this module
 logger = get_logger(__name__)
 
+class SystemConfigManager:
+    def __init__(self):
+        self.system_config = self.load_sys_config_file()
+        
+    def load_sys_config_file(self):
+        """
+        Loads the configuration from the system.json file.
+        """
+        if hasattr(sys, '_MEIPASS'):
+            system_config_file = os.path.join(sys._MEIPASS, 'config', 'system.json')
+        else:
+            system_config_file = os.path.join(os.getcwd(), 'config', 'system.json')
+        with open(system_config_file, "r") as f:
+            sysem_config = json.load(f)
+        return sysem_config    
+    
+    def load_sys_config(self, key):
+        """
+        Loads a specific key from the system configuration.
+        """
+        return self.system_config.get(key, None)
+
 class ConfigManager:
     def __init__(self):
         self.config_dir_path = os.path.join(os.getcwd(), 'config')
         self.config_file_path = os.path.join(self.config_dir_path, 'config.json')
         self.media_folder = os.path.join(os.getcwd(), 'media')
-        self.ensure_config_folder()
-
+        
     def ensure_config_folder(self):
         """
         Ensures the config folder and config.json exist in the current working directory.
@@ -61,11 +82,11 @@ class ConfigManager:
         if key:
             return config.get(key)
         return config
-
+    
     def save_config(self, config):
         with open(self.config_file_path, "w") as f:
             json.dump(config, f, indent=4)
-
+    
     def _validate_url(self, value):
         """
         Validates if the value is a valid URL.
@@ -77,7 +98,7 @@ class ConfigManager:
             r'(:\d+)?(/.*)?$'  # optional port and path
         )
         return bool(url_regex.match(value))
-
+    
     def _validate_dict_switch(self, value, required_keys):
         """
         Validates if the value is a dictionary with the required keys and values being "On" or "Off".
@@ -88,7 +109,7 @@ class ConfigManager:
             if key not in value or value[key] not in ["On", "Off"]:
                 return False
         return True
-
+    
     def _validate_single_switch(self, value):
         """
         Validates if the value being "On" or "Off".
@@ -98,7 +119,7 @@ class ConfigManager:
         if value not in ["On", "Off"]:
             return False
         return True
-
+    
     def _validate_dict_source(self, value):
         """
         Validates if the value is a dictionary for sources.
@@ -110,7 +131,7 @@ class ConfigManager:
                 print(f"Invalid URL: {url}")
                 return False
         return True
-    
+
     def _is_validate_key(self, key:str, type=None) -> bool:
         if type == "audio":
             allowed_keys = ["REGULAR_AZAN_FILE", "FAJR_AZAN_FILE", "SHORT_AZAN_FILE", "DUAA_FILE"]
@@ -118,7 +139,7 @@ class ConfigManager:
             # For other types, you can define allowed keys as needed
             allowed_keys = ["SOURCES", "DEFAULT_TIMETABLE", "TIMEZONE", "AZAN_SWITCHES", "SHORT_AZAN_SWITCHES", "DUAA_SWITCHES", "ISHA_GAMA_SWITCH", "AUDIO_VOLUME", "DEVICES"]
         return key in allowed_keys
-
+    
     async def update_env_keys(self, updates: dict) -> dict:
         """
         Updates multiple keys in the config.json file with the given values and returns a status for each key.

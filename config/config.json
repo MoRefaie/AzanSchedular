@@ -1,6 +1,4 @@
 {
-  "CONSOLE_LOGGING": "On",
-  "API_BASE_URL": "http://localhost:8000",
   "SOURCES": {
     "icci": "https://islamireland.ie/api/timetable/",
     "naas": "https://mawaqit.net/en/m/-34"

@@ -5,7 +5,7 @@ import uvicorn
 from api import app  # Import the API app
 from scheduler_manager import start_scheduler  # Import the start_scheduler function
 from logging_config import get_logger  # Import the centralized logger
-from config_manager import ConfigManager
+from config_manager import ConfigManager, SystemConfigManager  # Import the configuration manager
 import threading
 import pystray
 from PIL import Image
@@ -17,6 +17,7 @@ logger = get_logger(__name__)
 
 # Get the configuration manager instances
 config = ConfigManager()
+sys_config = SystemConfigManager()
 
 if hasattr(sys, '_MEIPASS'):
     # Running in a PyInstaller bundle
@@ -56,7 +57,7 @@ async def start_api():
     Starts the FastAPI application using uvicorn and logs its output asynchronously.
     """
     logger.info("Starting the API...")
-    config = uvicorn.Config(app, host="0.0.0.0", port=8000, log_level="info", log_config=None, lifespan="on")
+    config = uvicorn.Config(app, host=sys_config.load_sys_config("API_HOST") , port=sys_config.load_sys_config("API_PORT") , log_level="info", log_config=None, lifespan="on")
     server = uvicorn.Server(config)
 
     try:
@@ -96,7 +97,7 @@ async def start_web():
     try:
         # Run the Node.js application as an asynchronous subprocess
         process = await asyncio.create_subprocess_exec(
-           os.path.join(os.getcwd(),"AzanUI.exe"),
+           os.path.join(os.getcwd(),sys_config.load_sys_config("UI_APP")),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
@@ -141,6 +142,12 @@ async def main():
 
                 # Start the AzanScheduler and wait for it
                 await start_scheduler()
+                
+                # Open the UI in the default web browser
+                ui_url = sys_config.load_sys_config("UI_URL")
+                if ui_url:
+                    logger.info(f"Opening AzanUI in browser: {ui_url}")
+                    webbrowser.open(ui_url)
 
                 while not shutdown_trigger:
                     await asyncio.sleep(2) 
@@ -168,7 +175,7 @@ def on_quit(icon, item):
     shutdown_trigger = True
 
 def on_open_azanui(icon, item):
-    webbrowser.open("http://Azan.local:8080")
+    webbrowser.open(sys_config.load_sys_config("UI_URL"))
 
 def setup_tray_icon():
     # Use your icon file path here

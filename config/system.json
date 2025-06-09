@@ -1,0 +1,13 @@
+{
+  "CONSOLE_LOGGING": "On",
+  "API_HOST": "0.0.0.0",
+  "API_PORT": 8000,
+  "API_CORS": {
+    "allow_origins": ["*"],
+    "allow_credentials": true,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"]
+  },
+  "UI_APP": "AzanUI.exe",
+  "UI_URL": "http://Azan.local:8080"
+}
