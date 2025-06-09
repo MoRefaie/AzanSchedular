@@ -9,6 +9,7 @@ from config_manager import ConfigManager
 import threading
 import pystray
 from PIL import Image
+import webbrowser
 
 
 # Get a logger for this module
@@ -94,25 +95,28 @@ async def start_web():
     logger.info("Starting the AzanUI...")
     try:
         # Run the Node.js application as an asynchronous subprocess
-        process = await asyncio.create_subprocess_shell(
-            "npm start",  # Command to start the Node.js app
-            cwd="AzanUI",  # Path to the AzanUI directory
+        process = await asyncio.create_subprocess_exec(
+           os.path.join(os.getcwd(),"AzanUI.exe"),
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE
         )
-        logger.info("API process started. Waiting for it to be ready...")
+        logger.info("AzanUI process started. Waiting for it to be ready...")
         async for line in process.stdout:
             decoded_line = line.decode().strip()
             if decoded_line != "":
                 logger.info(f"AzanUI: {decoded_line}")
                 # Check for a specific line indicating the API is ready
-                if "Network" in decoded_line:
+                if "Server running" in decoded_line:
                     logger.info("AzanUI is ready.")
-                    break
+                    return process  # Return the process object
+        logger.error("Failed to start AzanUI.")
+        return None
     except FileNotFoundError as e:
         logger.error(f"Failed to start AzanUI: {e}")
+        return None
     except Exception as e:
         logger.error(f"An unexpected error occurred while starting AzanUI: {e}")
+        return None
 
 async def main():
     """
@@ -121,21 +125,25 @@ async def main():
     global shutdown_trigger
     logger.info("Starting the API, AzanUI, and AzanScheduler sequentially...")
 
+    azanui_server = None
     try:
         # Start the API and wait for it to be ready
         api_server, api_task = await start_api()
         if api_task is None:    
-            logger.error("Exiting...")
+            logger.error("API start error, Exiting...")
         else:
             # Start the AzanUI and wait for it to be ready
-            # await start_web()
-            logger.info("AzanUI started successfully.")
+            azanui_server = await start_web()
+            if azanui_server is None:
+                logger.error("AzanUi start error, Exiting...")
+            else:
+                logger.info("AzanUI started successfully.")
 
-            # Start the AzanScheduler and wait for it
-            await start_scheduler()
+                # Start the AzanScheduler and wait for it
+                await start_scheduler()
 
-            while not shutdown_trigger:
-                await asyncio.sleep(2) 
+                while not shutdown_trigger:
+                    await asyncio.sleep(2) 
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
@@ -146,6 +154,11 @@ async def main():
             logger.info("Signaling Uvicorn server to shut down gracefully...")
             api_server.should_exit = True
             await api_task  # Wait for Uvicorn to finish gracefully
+        # Terminate AzanUI process if running
+        if azanui_server and azanui_server.returncode is None:
+            logger.info("Terminating AzanUI process...")
+            azanui_server.terminate()
+            await azanui_server.wait()
         # Call the shutdown function
         await shutdown()
 
@@ -154,11 +167,17 @@ def on_quit(icon, item):
     icon.stop()
     shutdown_trigger = True
 
+def on_open_azanui(icon, item):
+    webbrowser.open("http://Azan.local:8080")
+
 def setup_tray_icon():
     # Use your icon file path here
     icon_path = os.path.join(media_dir, "icon.ico")
     image = Image.open(icon_path)
-    menu = pystray.Menu(pystray.MenuItem('Quit', on_quit))
+    menu = pystray.Menu(
+        pystray.MenuItem('Open AzanUI', on_open_azanui),
+        pystray.MenuItem('Quit', on_quit)
+    )
     icon = pystray.Icon("AzanSchedular", image, "Azan Schedular", menu)
     icon.run()
 
