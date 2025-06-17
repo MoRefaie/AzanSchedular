@@ -10,6 +10,7 @@ import threading
 import pystray
 from PIL import Image
 import webbrowser
+import subprocess
 
 
 # Get a logger for this module
@@ -95,18 +96,23 @@ async def start_web():
     """
     logger.info("Starting the AzanUI...")
     try:
+        # Hide the CMD window on Windows
+        creationflags = 0
+        if os.name == "nt":
+            creationflags = subprocess.CREATE_NO_WINDOW
+            
         # Run the Node.js application as an asynchronous subprocess
         process = await asyncio.create_subprocess_exec(
-           os.path.join(os.getcwd(),sys_config.load_sys_config("UI_APP")),
+            os.path.join(os.getcwd(), sys_config.load_sys_config("UI_APP")),
             stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE
+            stderr=asyncio.subprocess.PIPE,
+            creationflags=creationflags
         )
         logger.info("AzanUI process started. Waiting for it to be ready...")
         async for line in process.stdout:
             decoded_line = line.decode().strip()
             if decoded_line != "":
                 logger.info(f"AzanUI: {decoded_line}")
-                # Check for a specific line indicating the API is ready
                 if "Server running" in decoded_line:
                     logger.info("AzanUI is ready.")
                     return process  # Return the process object
