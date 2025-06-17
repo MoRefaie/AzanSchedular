@@ -29,7 +29,8 @@ jobs:
     - name: Type check with mypy
       run: |
         pip install mypy
-        mypy .
+        python -m pip install types-python-dateutil types-aiofiles types-requests types-tabulate
+        mypy AzanSchedular
     - name: Run tests
       run: |
         pip install pytest pytest-asyncio

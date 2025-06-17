@@ -2,10 +2,10 @@ import sys
 import os
 import asyncio
 from datetime import datetime
-from config_manager import ConfigManager
-from prayer_times_fetcher import PrayerTimesFetcher
-from apple_manager import AppleManager
-from logging_config import get_logger
+from AzanSchedular.config_manager import ConfigManager
+from AzanSchedular.prayer_times_fetcher import PrayerTimesFetcher
+from AzanSchedular.apple_manager import AppleManager
+from AzanSchedular.logging_config import get_logger
 
 
 # Get a logger for this module

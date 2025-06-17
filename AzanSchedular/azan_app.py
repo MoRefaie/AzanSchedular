@@ -2,16 +2,15 @@ import sys
 import os
 import asyncio
 import uvicorn
-from api import app
-from scheduler_manager import start_scheduler
-from logging_config import get_logger
-from config_manager import ConfigManager, SystemConfigManager
 import threading
 import pystray
 from PIL import Image
 import webbrowser
 import subprocess
-
+from AzanSchedular.api import app
+from AzanSchedular.scheduler_manager import start_scheduler
+from AzanSchedular.logging_config import get_logger
+from AzanSchedular.config_manager import ConfigManager, SystemConfigManager
 
 # Get a logger for this module
 logger = get_logger(__name__)

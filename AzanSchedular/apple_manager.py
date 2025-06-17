@@ -1,7 +1,7 @@
 import pyatv
 import asyncio
 from tabulate import tabulate
-from logging_config import get_logger
+from AzanSchedular.logging_config import get_logger
 
 
 # Get a logger for this module

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-from azan_scheduler import AzanScheduler
+from AzanSchedular.azan_scheduler import AzanScheduler
 
 
 # Get a logger for this module

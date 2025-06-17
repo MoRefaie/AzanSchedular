@@ -26,3 +26,6 @@ Test/
 AzanSchedular/config/*.json
 !AzanSchedular/config/config.json
 !AzanSchedular/config/system.json
+
+# MYPY
+.mypy_cache/

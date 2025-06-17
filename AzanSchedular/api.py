@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from scheduler_manager import start_scheduler, stop_scheduler, scheduler_status
-from apple_manager import AppleManager
-from config_manager import ConfigManager, SystemConfigManager
-from prayer_times_fetcher import PrayerTimesFetcher
-from logging_config import get_logger
+from AzanSchedular.scheduler_manager import start_scheduler, stop_scheduler, scheduler_status
+from AzanSchedular.apple_manager import AppleManager
+from AzanSchedular.config_manager import ConfigManager, SystemConfigManager
+from AzanSchedular.prayer_times_fetcher import PrayerTimesFetcher
+from AzanSchedular.logging_config import get_logger
 
 
 # Get a logger for this module
@@ -129,13 +129,15 @@ async def update_audio(file: UploadFile = File(...), fileType: str = Form(...)):
     logger.info("Received request to /update-media-file endpoint.")
     try:
         # Check if the uploaded file is an audio file
-        if not file.content_type.startswith("audio/"):
+        if not file.content_type or not file.content_type.startswith("audio/"):
             logger.error(f"Uploaded file is not an audio file: {file.content_type}")
             raise HTTPException(status_code=400, detail="Uploaded file must be an audio file.")
 
         file_bytes = await file.read()
-        file_name = file.filename
-
+        file_name = file.filename or ""
+        if not file_name:
+            logger.error(f"Uploaded file is missing a filename. fileType: {fileType}")
+            raise HTTPException(status_code=400, detail="Uploaded file must have a filename.")
         logger.info(f"Updating media file: {file_name}, fileType: {fileType}")
 
         # Pass the file name, fileType, and binary data to config_manager

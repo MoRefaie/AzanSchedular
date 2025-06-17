@@ -1,5 +1,4 @@
 import os
-from config_manager import ConfigManager
 from datetime import datetime, timedelta
 from dateutil import tz
 import requests
@@ -8,7 +7,8 @@ from bs4 import BeautifulSoup
 import re
 from tenacity import retry, stop_after_attempt, wait_fixed
 import time
-from logging_config import get_logger
+from AzanSchedular.logging_config import get_logger
+from AzanSchedular.config_manager import ConfigManager
 
 
 # Get a logger for this module

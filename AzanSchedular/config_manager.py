@@ -5,7 +5,7 @@ import json
 import re
 from dateutil import tz
 import aiofiles
-from logging_config import get_logger
+from AzanSchedular.logging_config import get_logger
 
 # Get a logger for this module
 logger = get_logger(__name__)
@@ -220,7 +220,7 @@ class ConfigManager:
                 self.save_config(config)
                 logger.info(f"✅ Updated {key} in config.json file to: {value}")
                 # Move import here to avoid circular import
-                from scheduler_manager import restart_scheduler
+                from AzanSchedular.scheduler_manager import restart_scheduler
                 await restart_scheduler()
                 status[key] = {"status": "updated", "message": f"Key '{key}' updated successfully."}
             except Exception as e:
