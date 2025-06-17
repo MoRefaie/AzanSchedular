@@ -1,14 +1,13 @@
 import pytest
-from unittest.mock import patch, MagicMock, AsyncMock
+from unittest.mock import patch, AsyncMock
 from AzanSchedular.azan_scheduler import AzanScheduler
 
-def test_dummy():
-    assert True
 
 def test_azan_scheduler_init():
     scheduler = AzanScheduler()
     assert scheduler.fetcher is not None
     assert scheduler.manager is not None
+
 
 @pytest.mark.asyncio
 async def test_play_azan_calls_announce():

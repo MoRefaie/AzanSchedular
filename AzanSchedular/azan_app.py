@@ -153,7 +153,6 @@ async def main():
                     logger.error("❌ AzanUI file is missing.")
                 else:
                     logger.info("✅ AzanUI started successfully.")
-                    
 
                 # Start the AzanScheduler and wait for it
                 await start_scheduler()
