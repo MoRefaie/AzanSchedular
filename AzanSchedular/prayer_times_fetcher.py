@@ -442,14 +442,3 @@ class PrayerTimesFetcher:
         else:  
             logger.error(f"Invalid type provided: {type}. Expected 'next' or 'today'.")
             return {"error": f"Invalid type. Expected 'next' or 'today'."}
-            
-
-# Example usage
-if __name__ == "__main__":
-    fetcher = PrayerTimesFetcher()
-
-    naas_prayers = fetcher.fetch_prayer_times("naas")
-    print(json.dumps(naas_prayers, indent=4))
-
-    icci_prayers = fetcher.fetch_prayer_times("icci")
-    print(json.dumps(icci_prayers, indent=4))
