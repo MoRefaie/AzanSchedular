@@ -2,19 +2,15 @@ import sys
 import os
 import pytest
 from unittest.mock import patch, MagicMock
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from AzanSchedular import azan_app
+
 
 # Patch pystray and PIL.Image to MagicMock if no display (headless CI)
 no_display = not os.environ.get("DISPLAY") and sys.platform != "win32"
 if no_display:
     sys.modules["pystray"] = MagicMock()
     sys.modules["PIL.Image"] = MagicMock()
-
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from AzanSchedular import azan_app
-
-# Utility: skip GUI tests if no display (e.g., in CI)
-no_display = not os.environ.get("DISPLAY") and sys.platform != "win32"
-
 
 @pytest.mark.asyncio
 async def test_shutdown_runs():
