@@ -1,7 +1,6 @@
 name: Python application
 
-description: >
-  Lint, type-check, and test Python code for AzanSchedular.
+# This workflow lints, type-checks, tests, and builds the AzanSchedular Python app
 
 on:
   push:
@@ -35,3 +34,9 @@ jobs:
       run: |
         pip install pytest pytest-asyncio httpx
         pytest
+    - name: Build Azan Scheduler EXE
+      run: |
+        pip install pyinstaller
+        pyinstaller --onefile main.py --name AzanScheduler
+        mkdir ..\dist
+        move dist\AzanScheduler.exe ..\dist\AzanScheduler.exe

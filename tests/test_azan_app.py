@@ -5,6 +5,9 @@ from unittest.mock import patch, MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from AzanSchedular import azan_app
 
+# Utility: skip GUI tests if no display (e.g., in CI)
+no_display = not os.environ.get("DISPLAY") and sys.platform != "win32"
+
 
 @pytest.mark.asyncio
 async def test_shutdown_runs():
@@ -48,6 +51,7 @@ async def test_main_runs(monkeypatch):
     await azan_app.main()
 
 
+@pytest.mark.skipif(no_display, reason="No display available for GUI tests.")
 def test_on_quit_sets_shutdown():
     icon = MagicMock()
     azan_app.shutdown_trigger = False
@@ -56,12 +60,14 @@ def test_on_quit_sets_shutdown():
     icon.stop.assert_called_once()
 
 
+@pytest.mark.skipif(no_display, reason="No display available for GUI tests.")
 def test_on_open_azanui_opens_browser():
     with patch("webbrowser.open") as mock_open:
         azan_app.on_open_azanui(MagicMock(), None)
         mock_open.assert_called()
 
 
+@pytest.mark.skipif(no_display, reason="No display available for GUI tests.")
 def test_setup_tray_icon(monkeypatch):
     # Patch pystray.Icon to avoid running the real tray icon
     monkeypatch.setattr(azan_app, "pystray", MagicMock())
