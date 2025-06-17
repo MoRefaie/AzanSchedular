@@ -142,19 +142,19 @@ async def update_audio(file: UploadFile = File(...), fileType: str = Form(...)):
         raise HTTPException(status_code=500, detail="Failed to update media file.")
 
 @app.get("/api/scheduler-status")
-async def api_start_scheduler():
+async def api_scheduler_status():
     """
-    API endpoint to start the Azan scheduler.
+    API endpoint to get the Azan scheduler status.
     Args:
         api_call (bool): Indicates whether the function was called via an API request.
     """
-    logger.info("Received request to /start-scheduler endpoint.")
+    logger.info("Received request to /scheduler-status endpoint.")
     try:
-        # Call the start_scheduler method
+        # Call the scheduler_status method
         return await scheduler_status()
     except Exception as e:
-        logger.error(f"❌ Failed to start scheduler: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to start scheduler: {e}")
+        logger.error(f"❌ Failed to get scheduler status: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get scheduler status: {e}")
 
 @app.post("/api/start-scheduler")
 async def api_start_scheduler():
