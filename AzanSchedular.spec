@@ -2,7 +2,7 @@
 
 from PyInstaller.utils.hooks import collect_all
 
-# List of packages to collect for hidden imports, datas, and binaries
+# List of packages you want to collect all for
 packages = [
     'bs4',
     'pyatv',
@@ -27,19 +27,15 @@ for pkg in packages:
     all_binaries += binaries
     all_hiddenimports += hiddenimports
 
-# Add all config and media files
-extra_datas = [
-    ('AzanSchedular/*.py', '.'),
-    ('config/*', 'config'),
-    ('media/*', 'media'),
-]
-
-# Analysis
 a = Analysis(
     ['AzanSchedular/azan_app.py'],
     pathex=[],
     binaries=all_binaries,
-    datas=extra_datas + all_datas,
+    datas=[
+        ('AzanSchedular/*.py', '.'),
+        ('config/*', 'config'),
+        ('media/*', 'media'),
+    ] + all_datas,
     hiddenimports=all_hiddenimports,
     hookspath=[],
     hooksconfig={},

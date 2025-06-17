@@ -39,6 +39,7 @@ class ConfigManager:
         self.config_dir_path = os.path.join(os.getcwd(), 'config')
         self.config_file_path = os.path.join(self.config_dir_path, 'config.json')
         self.media_folder = os.path.join(os.getcwd(), 'media')
+        self.ensure_config_folder()
 
     def ensure_config_folder(self):
         """
@@ -53,7 +54,11 @@ class ConfigManager:
             # If config directory doesn't exist, copy the entire directory
             if not os.path.exists(self.config_dir_path):
                 try:
-                    shutil.copytree(source_config_dir, self.config_dir_path)
+                    shutil.copytree(
+                        source_config_dir,
+                        self.config_dir_path,
+                        ignore=shutil.ignore_patterns('system.json')
+                    )
                     logger.info("✅ Config folder has been recreated.")
                 except Exception as e:
                     logger.error(f"❌ Failed to recreate config folder: {e}")

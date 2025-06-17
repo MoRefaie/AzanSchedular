@@ -29,3 +29,7 @@ AzanSchedular/config/*.json
 
 # MYPY
 .mypy_cache/
+
+# PyInstaller
+build/
+dist/
