@@ -28,13 +28,13 @@ for pkg in packages:
     all_hiddenimports += hiddenimports
 
 a = Analysis(
-    ['azan_app.py'],
+    ['AzanSchedular/azan_app.py'],
     pathex=[],
     binaries=all_binaries,
     datas=[
-        ('*.py', '.'),
-        ('config/*', 'config'),
-        ('media/*', 'media'),
+        ('AzanSchedular/*.py', '.'),
+        ('AzanSchedular/config/*', 'config'),
+        ('AzanSchedular/media/*', 'media'),
     ] + all_datas,
     hiddenimports=all_hiddenimports,
     hookspath=[],
@@ -66,5 +66,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
-    icon='media/icon.ico',
+    icon='AzanSchedular/media/icon.ico',
 )

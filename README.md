@@ -36,7 +36,7 @@ $ cd AzanSchedular
 $ pip install -r requirements.txt
 
 # Run the backend
-$ python azan_app.py
+$ python AzanSchedular/azan_app.py
 
 # (Optional) Run the UI
 $ git clone https://github.com/MoRefaie/AzanUI.git
@@ -50,6 +50,19 @@ $ npm run dev
 - Edit `AzanSchedular/config/system.json` for API and UI settings.
 - Use environment variables for secrets in production.
 
+## Logs & Media
+
+- Logs are stored in `AzanSchedular/logs/`.
+- Media files (icons, audio) are in `AzanSchedular/media/`.
+
+## Tests
+
+- Place your test files in the `tests/` directory at the project root.
+- Run tests with:
+  ```bash
+  pytest
+  ```
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
@@ -60,8 +73,8 @@ This project is licensed under the MIT License. See [License.txt](License.txt).
 
 ## FAQ
 
-- **How do I add a new prayer time calculation method?** See the scheduler module and extend `prayer_times_fetcher.py`.
-- **How do I run tests?** `pytest` in the root directory.
+- **How do I add a new prayer time calculation method?** See the scheduler module and extend `AzanSchedular/prayer_times_fetcher.py`.
+- **How do I run tests?** `pytest` in the project root.
 
 ## Troubleshooting
 
