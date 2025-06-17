@@ -41,7 +41,7 @@ async def start_scheduler():
     try:
         logger.info("Creating a new scheduler task...")
         scheduler_task = asyncio.create_task(scheduler.run())
-        logger.info("Azan scheduler started successfully.")
+        logger.info("✅ Azan scheduler started successfully.")
         return {"status": "success", "message": "Azan scheduler started successfully."}
     except Exception as e:
         logger.error(f"❌ Failed to start scheduler: {e}")

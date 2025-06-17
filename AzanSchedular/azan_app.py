@@ -71,20 +71,20 @@ async def start_api():
             await asyncio.sleep(0.1)  # Prevent busy waiting
 
         if server.started:
-            logger.info("API started successfully.")
+            logger.info("✅ API started successfully.")
             return server, server_task
         else:
-            logger.error("Failed to start API.")
+            logger.error("❌ Failed to start API.")
             return None, None
 
     except BaseException:
         # Catch BaseException explicitly and log the error
-        logger.error("Failed to start API.")
+        logger.error("❌ Failed to start API.")
         return None, None
 
     except Exception as e:
         # Catch other exceptions and log them
-        logger.error("Failed to start API.")
+        logger.error("❌ Failed to start API.")
         logger.error(f"Exception: {e}")
         return None, None
 
@@ -96,6 +96,10 @@ async def start_web():
     Starts the AzanUI application and logs its output asynchronously.
     """
     logger.info("Starting the AzanUI...")
+    azanui_path = os.path.join(os.getcwd(), sys_config.load_sys_config("UI_APP"))
+    if not os.path.exists(azanui_path):
+        logger.info(f"AzanUI file not found at {azanui_path}. Assuming AzanUI is started (file missing).")
+        return "AzanUI_MISSING"
     try:
         # Hide the CMD window on Windows
         creationflags = 0
@@ -104,7 +108,7 @@ async def start_web():
 
         # Run the Node.js application as an asynchronous subprocess
         process = await asyncio.create_subprocess_exec(
-            os.path.join(os.getcwd(), sys_config.load_sys_config("UI_APP")),
+            azanui_path,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             creationflags=creationflags
@@ -115,15 +119,15 @@ async def start_web():
             if decoded_line != "":
                 logger.info(f"AzanUI: {decoded_line}")
                 if "Server running" in decoded_line:
-                    logger.info("AzanUI is ready.")
+                    logger.info("✅ AzanUI is ready.")
                     return process  # Return the process object
-        logger.error("Failed to start AzanUI.")
+        logger.error("❌ Failed to start AzanUI.")
         return None
     except FileNotFoundError as e:
-        logger.error(f"Failed to start AzanUI: {e}")
+        logger.error(f"❌ Failed to start AzanUI: {e}")
         return None
     except Exception as e:
-        logger.error(f"An unexpected error occurred while starting AzanUI: {e}")
+        logger.error(f"❌ An unexpected error occurred while starting AzanUI: {e}")
         return None
 
 
@@ -138,21 +142,25 @@ async def main():
         # Start the API and wait for it to be ready
         api_server, api_task = await start_api()
         if api_task is None:
-            logger.error("API start error, Exiting...")
+            logger.error("❌ API start error, Exiting...")
         else:
             # Start the AzanUI and wait for it to be ready
             azanui_server = await start_web()
             if azanui_server is None:
-                logger.error("AzanUi start error, Exiting...")
+                logger.error("❌ AzanUi start error, Exiting...")
             else:
-                logger.info("AzanUI started successfully.")
+                if azanui_server == "AzanUI_MISSING":
+                    logger.error("❌ AzanUI file is missing.")
+                else:
+                    logger.info("✅ AzanUI started successfully.")
+                    
 
                 # Start the AzanScheduler and wait for it
                 await start_scheduler()
 
                 # Open the UI in the default web browser
                 ui_url = sys_config.load_sys_config("UI_URL")
-                if ui_url:
+                if ui_url and azanui_server != "AzanUI_MISSING":
                     logger.info(f"Opening AzanUI in browser: {ui_url}")
                     webbrowser.open(ui_url)
 
