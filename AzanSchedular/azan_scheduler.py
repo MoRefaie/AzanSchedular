@@ -1,12 +1,12 @@
 import sys
 import os
 import asyncio
-import json
-from datetime import datetime, timedelta
+from datetime import datetime
 from config_manager import ConfigManager
 from prayer_times_fetcher import PrayerTimesFetcher
 from apple_manager import AppleManager
-from logging_config import get_logger  # Import the centralized logger
+from logging_config import get_logger
+
 
 # Get a logger for this module
 logger = get_logger(__name__)
@@ -21,6 +21,7 @@ if hasattr(sys, '_MEIPASS'):
     default_media_dir = os.path.join(sys._MEIPASS, 'media')
 else:
     default_media_dir = media_dir  # fallback to media_dir if not running in PyInstaller
+
 
 class AzanScheduler:
     def __init__(self):
@@ -39,7 +40,7 @@ class AzanScheduler:
         azan_switches = config.load_config("AZAN_SWITCHES")  # JSON string for prayer switches
         short_azan_switch = config.load_config("SHORT_AZAN_SWITCHES")  # Short Azan switches
         duaa_switch = config.load_config("DUAA_SWITCHES")  # Short Azan switches
-        isha_gama_switch = config.load_config("ISHA_GAMA_SWITCH") # Isha Gama switch
+        isha_gama_switch = config.load_config("ISHA_GAMA_SWITCH")  # Isha Gama switch
         azan_file_short = os.path.join(media_dir, config.load_config('SHORT_AZAN_FILE'))
         if not os.path.exists(azan_file_short):
             azan_file_short = os.path.join(default_media_dir, config.load_config('SHORT_AZAN_FILE'))
@@ -124,4 +125,4 @@ class AzanScheduler:
 
 if __name__ == "__main__":
     scheduler = AzanScheduler()
-    asyncio.run(scheduler.run())  # Use asyncio.run() only at the top level
+    asyncio.run(scheduler.run())

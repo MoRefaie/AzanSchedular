@@ -5,7 +5,6 @@ from logging.handlers import RotatingFileHandler
 from datetime import datetime
 
 
-
 # Ensure the logs folder exists
 log_folder = "logs"
 os.makedirs(log_folder, exist_ok=True)
@@ -26,6 +25,7 @@ file_handler = RotatingFileHandler(
 )
 file_handler.setFormatter(log_formatter)
 
+
 # --- Read CONSOLE_LOGGING directly from system.json ---
 def get_console_logging_setting():
     # Try to find system.json in MEIPASS or local config
@@ -39,6 +39,7 @@ def get_console_logging_setting():
         return str(sys_config.get("CONSOLE_LOGGING", "Off")).lower() == "on"
     except Exception:
         return False
+
 
 console_logging = get_console_logging_setting()
 
@@ -58,7 +59,7 @@ def configure_logger():
             if record.name.startswith("uvicorn"):
                 record.msg = f"API Log - {record.msg}"
             return True
-        
+
     # Add the custom filter to the file handler
     file_handler.addFilter(UvicornFilter())
 
@@ -70,6 +71,7 @@ def configure_logger():
         console_handler = logging.StreamHandler()
         console_handler.setFormatter(log_formatter)
         root_logger.addHandler(console_handler)
+
 
 # Function to get a logger
 def get_logger(name):
@@ -83,6 +85,7 @@ def get_logger(name):
         logging.Logger: The configured logger.
     """
     return logging.getLogger(name)
+
 
 # Configure the logger based on the .env setting
 configure_logger()

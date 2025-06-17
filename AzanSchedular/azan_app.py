@@ -2,10 +2,10 @@ import sys
 import os
 import asyncio
 import uvicorn
-from api import app  # Import the API app
-from scheduler_manager import start_scheduler  # Import the start_scheduler function
-from logging_config import get_logger  # Import the centralized logger
-from config_manager import ConfigManager, SystemConfigManager  # Import the configuration manager
+from api import app
+from scheduler_manager import start_scheduler
+from logging_config import get_logger
+from config_manager import ConfigManager, SystemConfigManager
 import threading
 import pystray
 from PIL import Image
@@ -26,8 +26,9 @@ if hasattr(sys, '_MEIPASS'):
 else:
     # Running in normal Python environment
     media_dir = os.path.join(os.getcwd(), 'media')
-    
+
 shutdown_trigger = False
+
 
 async def shutdown():
     """
@@ -58,7 +59,7 @@ async def start_api():
     Starts the FastAPI application using uvicorn and logs its output asynchronously.
     """
     logger.info("Starting the API...")
-    config = uvicorn.Config(app, host=sys_config.load_sys_config("API_HOST") , port=sys_config.load_sys_config("API_PORT") , log_level="info", log_config=None, lifespan="on")
+    config = uvicorn.Config(app, host=sys_config.load_sys_config("API_HOST"), port=sys_config.load_sys_config("API_PORT"), log_level="info", log_config=None, lifespan="on")
     server = uvicorn.Server(config)
 
     try:
@@ -77,16 +78,17 @@ async def start_api():
             logger.error("Failed to start API.")
             return None, None
 
-    except BaseException as e:
+    except BaseException:
         # Catch BaseException explicitly and log the error
         logger.error("Failed to start API.")
         return None, None
-    
+
     except Exception as e:
         # Catch other exceptions and log them
         logger.error("Failed to start API.")
         logger.error(f"Exception: {e}")
         return None, None
+
 
 # Ensure event loop runs properly
 
@@ -100,7 +102,7 @@ async def start_web():
         creationflags = 0
         if os.name == "nt":
             creationflags = subprocess.CREATE_NO_WINDOW
-            
+
         # Run the Node.js application as an asynchronous subprocess
         process = await asyncio.create_subprocess_exec(
             os.path.join(os.getcwd(), sys_config.load_sys_config("UI_APP")),
@@ -125,18 +127,18 @@ async def start_web():
         logger.error(f"An unexpected error occurred while starting AzanUI: {e}")
         return None
 
+
 async def main():
     """
     Runs the API application, the AzanUI, and the AzanScheduler sequentially.
     """
-    global shutdown_trigger
     logger.info("Starting the API, AzanUI, and AzanScheduler sequentially...")
 
     azanui_server = None
     try:
         # Start the API and wait for it to be ready
         api_server, api_task = await start_api()
-        if api_task is None:    
+        if api_task is None:
             logger.error("API start error, Exiting...")
         else:
             # Start the AzanUI and wait for it to be ready
@@ -148,7 +150,7 @@ async def main():
 
                 # Start the AzanScheduler and wait for it
                 await start_scheduler()
-                
+
                 # Open the UI in the default web browser
                 ui_url = sys_config.load_sys_config("UI_URL")
                 if ui_url:
@@ -156,11 +158,11 @@ async def main():
                     webbrowser.open(ui_url)
 
                 while not shutdown_trigger:
-                    await asyncio.sleep(2) 
+                    await asyncio.sleep(2)
 
     except Exception as e:
         logger.error(f"An error occurred: {e}")
-    
+
     finally:
         # Gracefully shutdown Uvicorn
         if api_server:
@@ -175,13 +177,16 @@ async def main():
         # Call the shutdown function
         await shutdown()
 
+
 def on_quit(icon, item):
     global shutdown_trigger
     icon.stop()
     shutdown_trigger = True
 
+
 def on_open_azanui(icon, item):
     webbrowser.open(sys_config.load_sys_config("UI_URL"))
+
 
 def setup_tray_icon():
     # Use your icon file path here
@@ -193,6 +198,7 @@ def setup_tray_icon():
     )
     icon = pystray.Icon("AzanSchedular", image, "Azan Schedular", menu)
     icon.run()
+
 
 if __name__ == "__main__":
     # Start tray icon in a separate thread so it doesn't block your main app
@@ -207,6 +213,6 @@ if __name__ == "__main__":
     except RuntimeError as e:
         logger.error(f"RuntimeError occurred: {e}")
     except Exception as e:
-        logger.error(f"Exception occurred: {e}")    
+        logger.error(f"Exception occurred: {e}")
     finally:
         logger.info("Shutting down completed.")

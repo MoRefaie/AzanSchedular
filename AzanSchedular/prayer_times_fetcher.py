@@ -1,17 +1,15 @@
-import sys
 import os
 from config_manager import ConfigManager
 from datetime import datetime, timedelta
 from dateutil import tz
 import requests
 import json
-import logging
 from bs4 import BeautifulSoup
 import re
-import tempfile
 from tenacity import retry, stop_after_attempt, wait_fixed
 import time
-from logging_config import get_logger  # Import the centralized logger
+from logging_config import get_logger
+
 
 # Get a logger for this module
 logger = get_logger(__name__)
@@ -19,6 +17,7 @@ logger = get_logger(__name__)
 # Get the configuration manager instance
 config = ConfigManager()
 config_dir = os.path.join(os.getcwd(), 'config')
+
 
 class PrayerTimesFetcher:
     def _get_timezone(self):
@@ -37,7 +36,7 @@ class PrayerTimesFetcher:
         """
         Downloads the timetable for the specified location.
         """
-        sources_url = config.load_config("SOURCES") # API URLs
+        sources_url = config.load_config("SOURCES")  # API URLs
 
         # Dynamically construct the timetable file path
         timetable_file = os.path.join(config_dir, f"{location}_timetable.json")
@@ -59,7 +58,7 @@ class PrayerTimesFetcher:
                             calendar_data = match.group(1)
                         break
                 if not calendar_data:
-                    logger.error(f"❌ Calendar data not found in Naas webpage.")
+                    logger.error("❌ Calendar data not found in Naas webpage.")
                     return False
                 data = json.loads(calendar_data)
             else:
@@ -74,7 +73,7 @@ class PrayerTimesFetcher:
         except (requests.RequestException, json.JSONDecodeError) as e:
             logger.error(f"❌ Failed to download {location.upper()} timetable: {e}.")
             return False
- 
+
     # Format the timetable
     def format_timetable(self, location):
         """
@@ -208,7 +207,7 @@ class PrayerTimesFetcher:
         except FileNotFoundError:
             logger.warning(f"File {timetable_file} not found. It will be treated as outdated.")
             return True  # Treat missing file as outdated
-   
+
     # Wait until midnight
     def _wait_until_midnight(self):
         """
@@ -266,7 +265,7 @@ class PrayerTimesFetcher:
                 logger.debug(f"Skipping prayer {prayer} as it is turned Off in the switches.")
                 continue
 
-            isha_gama_switch = config.load_config("ISHA_GAMA_SWITCH") # Isha Gama switch
+            isha_gama_switch = config.load_config("ISHA_GAMA_SWITCH")   # Isha Gama switch
             if prayer.lower() == "isha" and isha_gama_switch == "On" and type == "next":
                 logger.debug(f"Skipping prayer {prayer} as Gama is turned On in the switches.")
                 continue
@@ -278,7 +277,7 @@ class PrayerTimesFetcher:
             except ValueError as e:
                 logger.error(f"Invalid time format for prayer {prayer}: {time_str}. Error: {e}")
                 continue
-            
+
             logger.debug(f"Checking prayer {prayer} at {prayer_time}.")
             if prayer_time > current_time:
                 if next_prayer_time is None or prayer_time < next_prayer_time:
@@ -338,7 +337,6 @@ class PrayerTimesFetcher:
             logger.error(f"Error fetching prayer times for {location.upper()} on {today_date_text}: {day_prayers_times['error']}.")
             return day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {today_date_text}: {day_prayers_times}.")
-        
         logger.info(f"Finding the next prayer for {location.upper()} on {today_date_text}.")
         next_prayer = self._find_next_prayer(type, today_date, day_prayers_times)
         if next_prayer:
@@ -356,7 +354,6 @@ class PrayerTimesFetcher:
             logger.error(f"Error fetching prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times['error']}.")
             return next_day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times}.")
-        
         logger.info(f"Fetching the first prayer for {location.upper()} on {next_day_date_text}.")
         return self._find_first_prayer(next_day_date, next_day_prayers_times)
 
@@ -381,7 +378,7 @@ class PrayerTimesFetcher:
         next_prayer = self._find_next_prayer(type, today_date, day_prayers_times)
         if next_prayer:
             logger.info(f"Next prayer found for {location.upper()} on {today_date_text} is {next_prayer['prayer']} at {next_prayer['prayer_time']}.")
-            return {**day_prayers_times,"date":today_date_text}
+            return {**day_prayers_times, "date": today_date_text}
 
         logger.info(f"No future prayers found for {location.upper()} on {today_date_text}. Checking the next day.")
         next_day_date = today_date + timedelta(days=1)
@@ -394,7 +391,7 @@ class PrayerTimesFetcher:
             logger.error(f"Error fetching prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times['error']}.")
             return next_day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times}.")
-        return {**next_day_prayers_times,"date":next_day_date_text}
+        return {**next_day_prayers_times, "date": next_day_date_text}
 
     # Check if the current month is a new month
     def _is_new_month(self, data):
@@ -408,14 +405,12 @@ class PrayerTimesFetcher:
         return False
 
     # Fetch today's prayer times
-    def fetch_prayer_times(self,type):
+    def fetch_prayer_times(self, type):
         """
         Fetches today's prayer times for the specified location.
         Refreshes the timetable if it is a new month, if the data is missing, or if the file is outdated.
         """
         location = config.load_config("DEFAULT_TIMETABLE")
-        # Dynamically construct the timetable file path
-        timetable_file = os.path.join(config_dir, f"{location}_formatted_timetable.json")
 
         # Parse the SOURCES environment variable as a dictionary
         sources = list(config.load_config("SOURCES").keys())  # Extract the keys as a list
@@ -439,6 +434,6 @@ class PrayerTimesFetcher:
             return self._extract_next_prayer(type, data, location)
         elif type == "today":
             return self._extract_today_prayer(type, data, location)
-        else:  
+        else:
             logger.error(f"Invalid type provided: {type}. Expected 'next' or 'today'.")
-            return {"error": f"Invalid type. Expected 'next' or 'today'."}
+            return {"error": "Invalid type. Expected 'next' or 'today'."}

@@ -1,14 +1,11 @@
 import pyatv
 import asyncio
-import logging
-from pyatv.const import Protocol
 from tabulate import tabulate
-import io
-from logging_config import get_logger  # Import the centralized logger
+from logging_config import get_logger
+
 
 # Get a logger for this module
 logger = get_logger(__name__)
-
 
 
 class AppleManager:
@@ -148,6 +145,7 @@ class AppleManager:
 
             # Return the devices as dict
             return {"status": "success", "devices": devices}
+
 
 # Example usage:
 if __name__ == "__main__":

@@ -2,6 +2,7 @@ import asyncio
 import logging
 from azan_scheduler import AzanScheduler
 
+
 # Get a logger for this module
 logger = logging.getLogger(__name__)
 
@@ -17,8 +18,6 @@ async def scheduler_status():
     Returns:
         dict: A dictionary containing the status and whether the scheduler is active.
     """
-    global scheduler_task
-
     if scheduler_task and not scheduler_task.done():
         logger.info("Scheduler is active.")
         return {"status": "success", "data": {"active": True}}
@@ -55,8 +54,6 @@ async def stop_scheduler():
     Args:
         api_call (bool): Indicates whether the function was called via an API request.
     """
-    global scheduler_task
-
     if not scheduler_task or scheduler_task.done():
         logger.warning("Scheduler is not running.")
         return {"status": "success", "message": "Scheduler is not running."}

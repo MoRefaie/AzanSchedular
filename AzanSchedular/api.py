@@ -1,13 +1,12 @@
 from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-import asyncio
-import logging
-from scheduler_manager import start_scheduler, stop_scheduler, scheduler_status  # Import scheduler functions
+from scheduler_manager import start_scheduler, stop_scheduler, scheduler_status
 from apple_manager import AppleManager
-from config_manager import ConfigManager, SystemConfigManager  # Import the configuration manager
+from config_manager import ConfigManager, SystemConfigManager
 from prayer_times_fetcher import PrayerTimesFetcher
-from logging_config import get_logger  # Import the centralized logger
+from logging_config import get_logger
+
 
 # Get a logger for this module
 logger = get_logger(__name__)
@@ -32,11 +31,14 @@ app.add_middleware(
     allow_headers=cors_config.get("allow_headers", ["*"]),
 )
 
+
 class ConfigManagerGetRequest(BaseModel):
     list: list  # A dictionary of keys and values to update in the .env file
 
+
 class ConfigManagerUpdateRequest(BaseModel):
     updates: dict  # A dictionary of keys and values to update in the .env file
+
 
 @app.get("/api/prayer-times")
 async def prayer_times():
@@ -52,10 +54,11 @@ async def prayer_times():
         today_prayer_times = prayer_fetcher.fetch_prayer_times("today")
         logger.info(f"Today's prayer times Results: {today_prayer_times}")
         return {"status": "success", "data": today_prayer_times}
-    
+
     except Exception as e:
         logger.error(f"An error occurred while geting today's prayer times: {e}")
         return {"status": "error", "message": str(e)}
+
 
 @app.get("/api/scan-devices")
 async def scan_devices():
@@ -75,7 +78,8 @@ async def scan_devices():
     except Exception as e:
         logger.error(f"An error occurred while scanning for devices: {e}")
         return {"status": "error", "message": str(e)}
-    
+
+
 @app.post("/api/get-config")
 async def get_config(request: ConfigManagerGetRequest):
     """
@@ -92,7 +96,7 @@ async def get_config(request: ConfigManagerGetRequest):
         config_values = config.get_config_values(request.list)
         logger.info(f"Config values retrieved successfully: {config_values}")
         return {"status": "success", "data": config_values}
-    
+
     except Exception as e:
         logger.error(f"An error occurred while getting config values: {e}")
         return {"status": "error", "message": str(e)}
@@ -114,7 +118,8 @@ async def update_config(request: ConfigManagerUpdateRequest):
     except Exception as e:
         logger.error(f"❌ Failed to update configuration: {e}")
         raise HTTPException(status_code=500, detail="Failed to update configuration.")
-    
+
+
 @app.post("/api/update-audio")
 async def update_audio(file: UploadFile = File(...), fileType: str = Form(...)):
     """
@@ -141,6 +146,7 @@ async def update_audio(file: UploadFile = File(...), fileType: str = Form(...)):
         logger.error(f"❌ Failed to update media file: {e}")
         raise HTTPException(status_code=500, detail="Failed to update media file.")
 
+
 @app.get("/api/scheduler-status")
 async def api_scheduler_status():
     """
@@ -155,6 +161,7 @@ async def api_scheduler_status():
     except Exception as e:
         logger.error(f"❌ Failed to get scheduler status: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to get scheduler status: {e}")
+
 
 @app.post("/api/start-scheduler")
 async def api_start_scheduler():
