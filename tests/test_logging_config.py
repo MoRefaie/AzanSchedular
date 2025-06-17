@@ -1,6 +1,9 @@
-from unittest.mock import patch
-from AzanSchedular.logging_config import get_console_logging_setting, get_logger, configure_logger
+import sys
+import os
 import logging
+from unittest.mock import patch
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from AzanSchedular.logging_config import get_console_logging_setting, get_logger, configure_logger
 
 
 def test_get_console_logging_setting_returns_bool():

@@ -1,4 +1,7 @@
+import sys
+import os
 from unittest.mock import patch
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from AzanSchedular.prayer_times_fetcher import PrayerTimesFetcher
 
 
@@ -35,7 +38,16 @@ def test_is_new_month_returns_bool():
 
 def test_fetch_prayer_times_invalid_type():
     fetcher = PrayerTimesFetcher()
-    with patch("AzanSchedular.prayer_times_fetcher.config.load_config", side_effect=["icci", {"icci": "url"}]):
+
+    def load_config_side_effect(*args, **kwargs):
+        # Always return a valid value for any config key
+        if args and args[0] == "DEFAULT_TIMETABLE":
+            return "icci"
+        if args and args[0] == "SOURCES":
+            return {"icci": "url"}
+        return None
+
+    with patch("AzanSchedular.prayer_times_fetcher.config.load_config", side_effect=load_config_side_effect):
         with patch.object(fetcher, "_is_file_outdated", return_value=False):
             with patch.object(fetcher, "_reload_data", return_value={"1": {}}):
                 result = fetcher.fetch_prayer_times("badtype")

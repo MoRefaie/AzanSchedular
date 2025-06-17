@@ -33,5 +33,5 @@ jobs:
         mypy AzanSchedular
     - name: Run tests
       run: |
-        pip install pytest pytest-asyncio
+        pip install pytest pytest-asyncio httpx
         pytest

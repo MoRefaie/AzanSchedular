@@ -1,6 +1,8 @@
+import sys
+import os
 import pytest
 from unittest.mock import patch, MagicMock
-import asyncio
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from AzanSchedular import azan_app
 
 
@@ -27,11 +29,22 @@ async def test_start_web_missing_file():
 
 @pytest.mark.asyncio
 async def test_main_runs(monkeypatch):
-    # Patch all sub-functions to avoid side effects
-    monkeypatch.setattr(azan_app, "start_api", lambda: asyncio.sleep(0.01) or (None, None))
-    monkeypatch.setattr(azan_app, "start_web", lambda: asyncio.sleep(0.01) or "AzanUI_MISSING")
-    monkeypatch.setattr(azan_app, "start_scheduler", lambda: asyncio.sleep(0.01))
-    monkeypatch.setattr(azan_app, "shutdown", lambda: asyncio.sleep(0.01))
+    async def fake_start_api():
+        return None, None
+
+    async def fake_start_web():
+        return "AzanUI_MISSING"
+
+    async def fake_start_scheduler():
+        return None
+
+    async def fake_shutdown():
+        return None
+
+    monkeypatch.setattr(azan_app, "start_api", fake_start_api)
+    monkeypatch.setattr(azan_app, "start_web", fake_start_web)
+    monkeypatch.setattr(azan_app, "start_scheduler", fake_start_scheduler)
+    monkeypatch.setattr(azan_app, "shutdown", fake_shutdown)
     await azan_app.main()
 
 

@@ -1,5 +1,8 @@
+import sys
+import os
 import pytest
 from unittest.mock import patch, mock_open
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from AzanSchedular.config_manager import SystemConfigManager, ConfigManager
 
 
