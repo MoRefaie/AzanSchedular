@@ -48,8 +48,6 @@ jobs:
       run: |
         pip install pyinstaller
         pyinstaller AzanSchedular.spec
-        if not exist dist mkdir dist
-        copy dist\AzanSchedular.exe dist\AzanSchedular.exe
 
     - name: Upload EXE as workflow artifact
       uses: actions/upload-artifact@v4
