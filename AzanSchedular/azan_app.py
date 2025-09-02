@@ -7,6 +7,7 @@ import pystray
 from PIL import Image
 import webbrowser
 import subprocess
+import winreg
 from AzanSchedular.api import app
 from AzanSchedular.scheduler_manager import start_scheduler
 from AzanSchedular.logging_config import get_logger
@@ -194,14 +195,87 @@ def on_open_azanui(icon, item):
     webbrowser.open(sys_config.load_sys_config("UI_URL"))
 
 
+def is_autostart_enabled():
+    """Check if auto-start is enabled in Windows registry."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_READ) as key:
+            try:
+                winreg.QueryValueEx(key, "Azan")
+                return True
+            except FileNotFoundError:
+                return False
+    except Exception as e:
+        logger.error(f"Error checking auto-start status: {e}")
+        return False
+
+
+def enable_autostart():
+    """Enable auto-start by adding registry entry."""
+    try:
+        exe_path = sys.executable if not getattr(sys, 'frozen', False) else sys.argv[0]
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_WRITE) as key:
+            winreg.SetValueEx(key, "Azan", 0, winreg.REG_SZ, f'"{exe_path}"')
+        logger.info("Auto-start enabled successfully")
+        return True
+    except Exception as e:
+        logger.error(f"Error enabling auto-start: {e}")
+        return False
+
+
+def disable_autostart():
+    """Disable auto-start by removing registry entry."""
+    try:
+        with winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"SOFTWARE\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_WRITE) as key:
+            try:
+                winreg.DeleteValue(key, "Azan")
+                logger.info("Auto-start disabled successfully")
+                return True
+            except FileNotFoundError:
+                logger.info("Auto-start was already disabled")
+                return True
+    except Exception as e:
+        logger.error(f"Error disabling auto-start: {e}")
+        return False
+
+
+def toggle_autostart(icon, item):
+    """Toggle auto-start on/off."""
+    if is_autostart_enabled():
+        disable_autostart()
+    else:
+        enable_autostart()
+    # Recreate the tray icon with updated menu
+    recreate_tray_menu(icon)
+
+
+def recreate_tray_menu(icon):
+    """Recreate the tray menu with updated auto-start status."""
+    autostart_status = "✓ Auto-start enabled" if is_autostart_enabled() else "Auto-start disabled"
+    menu = pystray.Menu(
+        pystray.MenuItem('Open AzanUI', on_open_azanui),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem(autostart_status, toggle_autostart),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem('Quit', on_quit)
+    )
+    icon.menu = menu
+
+
 def setup_tray_icon():
     # Use your icon file path here
     icon_path = os.path.join(media_dir, "icon.ico")
     image = Image.open(icon_path)
+    
+    # Create initial menu with auto-start status
+    autostart_status = "✓ Auto-start enabled" if is_autostart_enabled() else "Auto-start disabled"
     menu = pystray.Menu(
         pystray.MenuItem('Open AzanUI', on_open_azanui),
+        pystray.Menu.SEPARATOR,
+        pystray.MenuItem(autostart_status, toggle_autostart),
+        pystray.Menu.SEPARATOR,
         pystray.MenuItem('Quit', on_quit)
     )
+    
     icon = pystray.Icon("AzanSchedular", image, "Azan Schedular", menu)
     icon.run()
 
