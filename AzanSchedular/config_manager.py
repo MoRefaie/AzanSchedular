@@ -185,13 +185,13 @@ class ConfigManager:
         cleaned = dict(value)  # shallow copy
 
         # Ensure default exists and is correct
-        if cleaned.get("default") != "--":
-            cleaned["default"] = "--"
+        if cleaned.get("Default") != "--":
+            cleaned["Default"] = "--"
 
         # Remove invalid URLs (except default)
         invalid_sources = []
         for name, url in cleaned.items():
-            if name == "default":
+            if name == "Default":
                 continue
             if not self._validate_url(url):
                 logger.error(f"❌ Invalid URL for source '{name}': {url}")
@@ -227,7 +227,7 @@ class ConfigManager:
             if key == "SOURCES":
                 cleaned_sources,status_messages = self._sanitize_sources(value)
                 if not cleaned_sources:
-                    logger.error("❌ SOURCES must be a dictionary with at least the 'default' source.")
+                    logger.error("❌ SOURCES must be a dictionary with at least the 'Default' source.")
                     status[key] = {"status": "fail", "message": ", ".join(status_messages)}
                     continue
                 value = cleaned_sources
