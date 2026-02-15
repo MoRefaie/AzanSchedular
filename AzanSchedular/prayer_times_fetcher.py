@@ -463,14 +463,15 @@ class PrayerTimesFetcher:
         sources = list(config.load_config("SOURCES").keys())
 
         if location not in sources:
-            logger.error(f"Invalid location provided: {location}. Available locations: {sources}")
-            raise ValueError(f"Invalid location. Available locations: {sources}")
+            logger.error(f"Invalid location provided: {location}. Available locations: {sources}. Falling back to DEFAULT.")
+            return self.fetch_prayer_times(type, "default")
 
         # Outdated file → refresh
         if self._is_file_outdated(location):
             logger.info(f"The timetable file for {location.upper()} is outdated. Refreshing it.")
             if not self._refresh_timetable(location):
-                return {"error": f"Failed to load or refresh {location.upper()} timetable."}
+                logger.error(f"❌ Refresh failed for {location.upper()}. Falling back to DEFAULT.")
+                return self.fetch_prayer_times(type, "default")
 
         # Load data
         data = self._reload_data(location)
