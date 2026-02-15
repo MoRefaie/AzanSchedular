@@ -45,9 +45,9 @@ class PrayerTimesFetcher:
         try:
             response = requests.get(sources_url[location], timeout=10)
             response.raise_for_status()
-            if location == "icci":
+            if location.lower() == "icci":
                 data = response.json()
-            elif location == "naas":
+            elif location.lower() == "naas":
                 soup = BeautifulSoup(response.text, "html.parser")
                 script_tags = soup.find_all("script")
                 calendar_data = None
@@ -91,7 +91,7 @@ class PrayerTimesFetcher:
 
         formatted_timetable = {}
 
-        if location == "icci":
+        if location.lower() == "icci":
             # Format ICCI timetable
             if not data or "timetable" not in data:
                 logger.error(f"❌ Timetable data for {location.upper()} is missing or invalid.")
@@ -113,7 +113,7 @@ class PrayerTimesFetcher:
                         "Isha": f"{prayers[5][0]:02}:{prayers[5][1]:02}"
                     }
 
-        elif location == "naas":
+        elif location.lower() == "naas":
             # Format Naas timetable
             if not data or not isinstance(data, list):
                 logger.error(f"❌ Timetable data for {location.upper()} is missing or invalid.")
@@ -173,18 +173,30 @@ class PrayerTimesFetcher:
         """
         logger.info(f"🔄 Refreshing timetable for {location.upper()}.")
 
-        # Step 1: Download the timetable
-        if not self._download_timetable(location):
+        # 1. Try download
+        download_ok = self._download_timetable(location)
+
+        # 2. Try format only if download succeeded
+        if download_ok:
+            format_ok = self.format_timetable(location)
+            if format_ok:
+                logger.info(f"✅ Timetable for {location.upper()} successfully refreshed and formatted.")
+                return True
+            else:
+                logger.error(f"❌ Failed to format timetable for {location.upper()}.")
+        else:
             logger.error(f"❌ Failed to download timetable for {location.upper()}.")
-            return False
 
-        # Step 2: Format the downloaded timetable
-        if not self.format_timetable(location):
-            logger.error(f"❌ Failed to format timetable for {location.upper()}.")
-            return False
+        # 3. If we reach here → download or format failed
+        # Check if old formatted file exists
+        old_file = os.path.join(config_dir, f"{location}_formatted_timetable.json")
+        if os.path.exists(old_file):
+            logger.warning(f"⚠️ Using existing old timetable for {location.upper()}.")
+            return True
 
-        logger.info(f"✅ Timetable for {location.upper()} successfully refreshed and formatted.")
-        return True
+        # 4. No old file → refresh failed completely
+        logger.error(f"❌ No valid timetable available for {location.upper()}.")
+        return False
 
     # Check if the timetable file is outdated
     def _is_file_outdated(self, location):
@@ -335,7 +347,11 @@ class PrayerTimesFetcher:
         day_prayers_times = self._get_day_prayers(data, today_day, today_month, today_date_text, location)
         if "error" in day_prayers_times:
             logger.error(f"Error fetching prayer times for {location.upper()} on {today_date_text}: {day_prayers_times['error']}.")
-            return day_prayers_times
+            if location.lower() != "default":
+                logger.error(f"❌ Failed to fetch prayer times for {location.upper()}. Falling back to DEFAULT.")
+                return self.fetch_prayer_times(type, "default")
+            else:
+                return day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {today_date_text}: {day_prayers_times}.")
         logger.info(f"Finding the next prayer for {location.upper()} on {today_date_text}.")
         next_prayer = self._find_next_prayer(type, today_date, day_prayers_times)
@@ -352,7 +368,11 @@ class PrayerTimesFetcher:
         next_day_prayers_times = self._get_day_prayers(data, next_day, next_month, next_day_date_text, location)
         if "error" in next_day_prayers_times:
             logger.error(f"Error fetching prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times['error']}.")
-            return next_day_prayers_times
+            if location.lower() != "default":
+                logger.error(f"❌ Failed to fetch prayer times for {location.upper()}. Falling back to DEFAULT.")
+                return self.fetch_prayer_times(type, "default")
+            else:
+                return next_day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times}.")
         logger.info(f"Fetching the first prayer for {location.upper()} on {next_day_date_text}.")
         return self._find_first_prayer(next_day_date, next_day_prayers_times)
@@ -371,7 +391,11 @@ class PrayerTimesFetcher:
         day_prayers_times = self._get_day_prayers(data, today_day, today_month, today_date_text, location)
         if "error" in day_prayers_times:
             logger.error(f"Error fetching prayer times for {location.upper()} on {today_date_text}: {day_prayers_times['error']}.")
-            return day_prayers_times
+            if location.lower() != "default":
+                logger.error(f"❌ Failed to fetch prayer times for {location.upper()}. Falling back to DEFAULT.")
+                return self.fetch_prayer_times(type, "default")
+            else:
+                return day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {today_date_text}: {day_prayers_times}.")
 
         logger.info(f"Checking there next prayer for {location.upper()} on {today_date_text}.")
@@ -389,7 +413,11 @@ class PrayerTimesFetcher:
         next_day_prayers_times = self._get_day_prayers(data, next_day, next_month, next_day_date_text, location)
         if "error" in next_day_prayers_times:
             logger.error(f"Error fetching prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times['error']}.")
-            return next_day_prayers_times
+            if location.lower() != "default":
+                logger.error(f"❌ Failed to fetch prayer times for {location.upper()}. Falling back to DEFAULT.")
+                return self.fetch_prayer_times(type, "default")
+            else:
+                return next_day_prayers_times
         logger.info(f"Prayer times for {location.upper()} on {next_day_date_text}: {next_day_prayers_times}.")
         return {**next_day_prayers_times, "date": next_day_date_text}
 
@@ -404,32 +432,66 @@ class PrayerTimesFetcher:
             return True
         return False
 
-    # Fetch today's prayer times
-    def fetch_prayer_times(self, type):
+    def fetch_prayer_times(self, type, timetable=None):
         """
         Fetches today's prayer times for the specified location.
-        Refreshes the timetable if it is a new month, if the data is missing, or if the file is outdated.
+        Handles Default location separately.
         """
-        location = config.load_config("DEFAULT_TIMETABLE")
+        # 1. Resolve location based on timetable mode 
+        if timetable == "default": 
+            location = "default" 
+        else: 
+            location = config.load_config("DEFAULT_TIMETABLE")
 
-        # Parse the SOURCES environment variable as a dictionary
-        sources = list(config.load_config("SOURCES").keys())  # Extract the keys as a list
+        # SPECIAL CASE: Default location
+        if location.lower() == "default":
+            logger.info("Using DEFAULT timetable fallback mode.")
+
+            data = config.load_default_timetable()
+
+            if not data:
+                return {"error": "Failed to load default timetable."}
+
+            if type == "next":
+                return self._extract_next_prayer(type, data, location)
+            elif type == "today":
+                return self._extract_today_prayer(type, data, location)
+            else:
+                return {"error": "Invalid type. Expected 'next' or 'today'."}
+
+        # NORMAL LOCATIONS BELOW
+        sources = list(config.load_config("SOURCES").keys())
 
         if location not in sources:
             logger.error(f"Invalid location provided: {location}. Available locations: {sources}")
             raise ValueError(f"Invalid location. Available locations: {sources}")
 
+        # Outdated file → refresh
         if self._is_file_outdated(location):
             logger.info(f"The timetable file for {location.upper()} is outdated. Refreshing it.")
             if not self._refresh_timetable(location):
                 return {"error": f"Failed to load or refresh {location.upper()} timetable."}
 
+        # Load data
         data = self._reload_data(location)
+
+        # Missing or new month → try refresh
         if not data or self._is_new_month(data):
             logger.info(f"Refreshing timetable for {location.upper()} due to new month or missing data.")
+
             if not self._refresh_timetable(location):
-                return {"error": f"Failed to load or refresh {location.upper()} timetable."}
+                logger.error(f"❌ Refresh failed for {location.upper()}. Falling back to DEFAULT.")
+                return self.fetch_prayer_times(type, "default")
+
+            # Reload after refresh
             data = self._reload_data(location)
+
+            # If still missing → fallback
+            if not data:
+                logger.error(f"❌ Reload failed after refresh for {location.upper()}. Falling back to DEFAULT.")
+                return self.fetch_prayer_times(type, "default")
+
+        # Extract prayer times
         if type == "next":
             return self._extract_next_prayer(type, data, location)
         elif type == "today":

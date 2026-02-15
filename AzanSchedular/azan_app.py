@@ -97,7 +97,13 @@ async def start_web():
     Starts the AzanUI application and logs its output asynchronously.
     """
     logger.info("Starting the AzanUI...")
-    azanui_path = os.path.join(os.getcwd(), sys_config.load_sys_config("UI_APP"))
+    azanui_app = sys_config.load_sys_config("UI_APP")
+
+    # Add .exe automatically on Windows
+    if os.name == "nt" and not azanui_app.endswith(".exe"):
+        azanui_app += ".exe"
+
+    azanui_path = os.path.join(os.getcwd(), azanui_app)
     if not os.path.exists(azanui_path):
         logger.info(f"AzanUI file not found at {azanui_path}. Assuming AzanUI is started (file missing).")
         return "AzanUI_MISSING"
@@ -159,10 +165,17 @@ async def main():
                 await start_scheduler()
 
                 # Open the UI in the default web browser
-                ui_url = sys_config.load_sys_config("UI_URL")
-                if ui_url and azanui_server != "AzanUI_MISSING":
+                ui_host = sys_config.load_sys_config("UI_HOST")
+                ui_port = sys_config.load_sys_config("UI_PORT")
+
+                # Build full URL dynamically
+                ui_url = f"http://{ui_host}:{ui_port}"
+
+                if ui_host and ui_port and azanui_server != "AzanUI_MISSING":
                     logger.info(f"Opening AzanUI in browser: {ui_url}")
                     webbrowser.open(ui_url)
+                else:
+                    logger.warning("AzanUI not available or UI_HOST/UI_PORT missing.")
 
                 while not shutdown_trigger:
                     await asyncio.sleep(2)
@@ -190,10 +203,15 @@ def on_quit(icon, item):
     icon.stop()
     shutdown_trigger = True
 
-
 def on_open_azanui(icon, item):
-    webbrowser.open(sys_config.load_sys_config("UI_URL"))
+    ui_host = sys_config.load_sys_config("UI_HOST")
+    ui_port = sys_config.load_sys_config("UI_PORT")
 
+    # Build the full URL dynamically
+    ui_url = f"http://{ui_host}:{ui_port}"
+
+    logger.info(f"Opening AzanUI in browser: {ui_url}")
+    webbrowser.open(ui_url)
 
 def is_autostart_enabled():
     """Check if auto-start is enabled in Windows registry."""

@@ -1,9 +1,10 @@
 {
   "SOURCES": {
+    "default": "--",
     "icci": "https://islamireland.ie/api/timetable/",
     "naas": "https://mawaqit.net/en/m/-34"
   },
-  "DEFAULT_TIMETABLE": "icci",
+  "DEFAULT_TIMETABLE": "default",
   "TIMEZONE": "Europe/Dublin",
   "AZAN_SWITCHES": {
     "Fajr": "On",

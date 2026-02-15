@@ -8,6 +8,8 @@
     "allow_methods": ["*"],
     "allow_headers": ["*"]
   },
-  "UI_APP": "AzanUI.exe",
-  "UI_URL": "http://Azan.local:8080"
+  "UI_APP": "AzanUI",
+  "UI_HOST": "Azan.local",
+  "UI_PORT": "8080",
+  "BONJOUR": "On"
 }

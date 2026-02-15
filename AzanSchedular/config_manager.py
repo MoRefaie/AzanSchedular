@@ -13,19 +13,52 @@ logger = get_logger(__name__)
 
 class SystemConfigManager:
     def __init__(self):
+        self.config_dir_path = os.path.join(os.getcwd(), 'config')
+        self.system_file_path = os.path.join(self.config_dir_path, 'system.json')
+        self.ensure_system_config()
         self.system_config = self.load_sys_config_file()
+
+    def ensure_system_config(self):
+        """
+        Ensures the config folder and system.json exist in the current working directory.
+        If not, copies them from the PyInstaller _MEIPASS directory.
+        """
+
+        if hasattr(sys, '_MEIPASS'):
+            source_config_dir = os.path.join(sys._MEIPASS, 'config')
+            source_system_file = os.path.join(source_config_dir, 'system.json')
+
+            # If config directory doesn't exist, copy the entire directory
+            if not os.path.exists(self.config_dir_path):
+                try:
+                    shutil.copytree(
+                        source_config_dir,
+                        self.config_dir_path
+                    )
+                    logger.info("✅ Config folder has been recreated by SystemConfigManager.")
+                except Exception as e:
+                    logger.error(f"❌ Failed to recreate config folder: {e}")
+                    raise
+            # If system.json file is missing, copy only the file
+            elif not os.path.exists(self.system_file_path):
+                try:
+                    shutil.copy2(source_system_file, self.system_file_path)
+                    logger.info("✅ system.json file has been recreated.")
+                except Exception as e:
+                    logger.error(f"❌ Failed to recreate system.json file: {e}")
+                    raise
+        else:
+            if not os.path.exists(self.config_dir_path) or not os.path.exists(self.system_file_path):
+                logger.error("❌ Config folder or system.json missing and can't be recreated.")
+                raise FileNotFoundError("Config folder or system.json missing and can't be recreated.")
 
     def load_sys_config_file(self):
         """
         Loads the configuration from the system.json file.
         """
-        if hasattr(sys, '_MEIPASS'):
-            system_config_file = os.path.join(sys._MEIPASS, 'config', 'system.json')
-        else:
-            system_config_file = os.path.join(os.getcwd(), 'config', 'system.json')
-        with open(system_config_file, "r") as f:
-            sysem_config = json.load(f)
-        return sysem_config
+        with open(self.system_file_path, "r") as f:
+            system_config = json.load(f)
+        return system_config
 
     def load_sys_config(self, key):
         """
@@ -38,43 +71,53 @@ class ConfigManager:
     def __init__(self):
         self.config_dir_path = os.path.join(os.getcwd(), 'config')
         self.config_file_path = os.path.join(self.config_dir_path, 'config.json')
+        self.default_timetable_file_path = os.path.join(self.config_dir_path, 'default_formatted_timetable.json')
         self.media_folder = os.path.join(os.getcwd(), 'media')
         self.ensure_config_folder()
 
+
     def ensure_config_folder(self):
         """
-        Ensures the config folder and config.json exist in the current working directory.
+        Ensures the config folder, config.json and default_formatted_timetable.json exist in the current working directory.
         If not, copies them from the PyInstaller _MEIPASS directory.
         """
 
         if hasattr(sys, '_MEIPASS'):
             source_config_dir = os.path.join(sys._MEIPASS, 'config')
             source_config_file = os.path.join(source_config_dir, 'config.json')
+            source_default_timetable_file = os.path.join(source_config_dir, 'default_formatted_timetable.json')
 
             # If config directory doesn't exist, copy the entire directory
             if not os.path.exists(self.config_dir_path):
                 try:
                     shutil.copytree(
                         source_config_dir,
-                        self.config_dir_path,
-                        ignore=shutil.ignore_patterns('system.json')
+                        self.config_dir_path
                     )
-                    logger.info("✅ Config folder has been recreated.")
+                    logger.info("✅ Config folder has been recreated by ConfigManager.")
                 except Exception as e:
                     logger.error(f"❌ Failed to recreate config folder: {e}")
                     raise
             # If config.json file is missing, copy only the file
-            elif not os.path.exists(self.config_file_path):
+            if not os.path.exists(self.config_file_path):
                 try:
                     shutil.copy2(source_config_file, self.config_file_path)
                     logger.info("✅ config.json file has been recreated.")
                 except Exception as e:
                     logger.error(f"❌ Failed to recreate config.json file: {e}")
                     raise
+            # If default_formatted_timetable.json file is missing, copy only the file
+            if not os.path.exists(self.default_timetable_file_path):
+                try:
+                    shutil.copy2(source_default_timetable_file, self.default_timetable_file_path)
+                    logger.info("✅ default_formatted_timetable.json file has been recreated.")
+                except Exception as e:
+                    logger.error(f"❌ Failed to recreate default_formatted_timetable.json file: {e}")
+                    raise
         else:
-            if not os.path.exists(self.config_dir_path) or not os.path.exists(self.config_file_path):
-                logger.error("❌ Config folder or config.json missing and can't be recreated.")
-                raise FileNotFoundError("Config folder or config.json missing and can't be recreated.")
+            if not os.path.exists(self.config_dir_path) or not os.path.exists(self.config_file_path) or not os.path.exists(self.default_timetable_file_path):
+                logger.error("❌ Config folder or config.json or default_formatted_timetable.json missing and can't be recreated.")
+                raise FileNotFoundError("Config folder or config.json or default_formatted_timetable.json missing and can't be recreated.")
 
     def load_config(self, key=None):
         """
@@ -125,17 +168,40 @@ class ConfigManager:
             return False
         return True
 
-    def _validate_dict_source(self, value):
+    def _sanitize_sources(self, value: dict) -> dict:
         """
-        Validates if the value is a dictionary for sources.
+        Normalizes the value is a dictionary for sources.:
+        - Ensures it's a dict
+        - Ensures 'default' exists and is '--'
+        - Removes invalid URLs for non-default sources
+        Returns a NEW cleaned dict.
         """
+        status_messages = []
         if not isinstance(value, dict):
-            return False
-        for url in value.values():
+            logger.error(f"❌ Key 'SOURCES' must be a dictionary with source names as keys and valid URLs as values.")
+            status_messages.append( f"Key 'SOURCES' must be a dictionary with source names as keys and valid URLs as values.")
+            return {}, status_messages
+
+        cleaned = dict(value)  # shallow copy
+
+        # Ensure default exists and is correct
+        if cleaned.get("default") != "--":
+            cleaned["default"] = "--"
+
+        # Remove invalid URLs (except default)
+        invalid_sources = []
+        for name, url in cleaned.items():
+            if name == "default":
+                continue
             if not self._validate_url(url):
-                print(f"Invalid URL: {url}")
-                return False
-        return True
+                logger.error(f"❌ Invalid URL for source '{name}': {url}")
+                status_messages.append( f"Invalid URL for source '{name}'.")
+                invalid_sources.append(name)
+
+        for name in invalid_sources:
+            del cleaned[name]
+
+        return cleaned,status_messages
 
     def _is_validate_key(self, key: str, type=None) -> bool:
         if type == "audio":
@@ -159,20 +225,25 @@ class ConfigManager:
 
             # Validate SOURCES as a dictionary
             if key == "SOURCES":
-                if not self._validate_dict_source(value):
-                    logger.error(f"❌ Key '{key}' must be a dictionary where each key is a source name and each value is a valid URL.")
-                    status[key] = {"status": "fail", "message": f"Key '{key}' must be a dictionary with source names as keys and valid URLs as values."}
+                cleaned_sources,status_messages = self._sanitize_sources(value)
+                if not cleaned_sources:
+                    logger.error("❌ SOURCES must be a dictionary with at least the 'default' source.")
+                    status[key] = {"status": "fail", "message": ", ".join(status_messages)}
                     continue
+                value = cleaned_sources
 
             # Validate DEFAULT_TIMETABLE to be a valid source key
             if key == "DEFAULT_TIMETABLE":
-                if "SOURCES" in updates.keys() and self._validate_dict_source(updates["SOURCES"]):
-                    sources = list(updates["SOURCES"].keys())
+                if "SOURCES" in updates:
+                    candidate_sources, status_messages = self._sanitize_sources(updates["SOURCES"])
                 else:
-                    sources = list(config.get("SOURCES", {}).keys())
+                    candidate_sources = config.get("SOURCES", {})
+
+                sources = list(candidate_sources.keys())
+
                 if value not in sources:
                     logger.error(f"❌ Key '{key}' must be one of the available sources: {sources}.")
-                    status[key] = {"status": "fail", "message": f"Key '{key}' must be one of the available sources: {sources}."}
+                    status[key] = {"status": "fail","message": f"Key '{key}' must be one of the available sources: {sources}."}
                     continue
 
             # Validate TIMEZONE to be a valid timezone using dateutil.tz
@@ -307,3 +378,11 @@ class ConfigManager:
         except Exception as e:
             logger.error(f"❌ Failed to retrieve configuration values: {e}")
             return {"error": str(e)}
+
+    def load_default_timetable(self):
+        """
+        Loads the Timtable from the default_formatted_timetable.json file.
+        """
+        with open(self.default_timetable_file_path, "r") as f:
+            data = json.load(f)
+        return data
