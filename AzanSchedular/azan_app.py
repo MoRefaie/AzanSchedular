@@ -3,11 +3,16 @@ import os
 import asyncio
 import uvicorn
 import threading
-import pystray
-from PIL import Image
 import webbrowser
 import subprocess
-import winreg
+import platform
+if platform.system() == "Windows":
+    import pystray
+    from PIL import Image
+    import winreg
+else:
+    pystray = None
+    winreg = None
 from AzanSchedular.api import app
 from AzanSchedular.scheduler_manager import start_scheduler
 from AzanSchedular.logging_config import get_logger
@@ -172,8 +177,12 @@ async def main():
                 ui_url = f"http://{ui_host}:{ui_port}"
 
                 if ui_host and ui_port and azanui_server != "AzanUI_MISSING":
-                    logger.info(f"Opening AzanUI in browser: {ui_url}")
-                    webbrowser.open(ui_url)
+                    # Only attempt to open the browser on Windows.
+                    if platform.system() == "Windows":
+                        logger.info(f"Opening AzanUI in browser: {ui_url}")
+                        webbrowser.open(ui_url)
+                    else: 
+                        logger.info("Skipping browser auto-open (not Windows).")
                 else:
                     logger.warning("AzanUI not available or UI_HOST/UI_PORT missing.")
 
@@ -299,9 +308,12 @@ def setup_tray_icon():
 
 
 if __name__ == "__main__":
-    # Start tray icon in a separate thread so it doesn't block your main app
-    tray_thread = threading.Thread(target=setup_tray_icon, daemon=True)
-    tray_thread.start()
+    # Start tray icon on;ly on Windows and start it in a separate thread so it doesn't block your main app
+    if platform.system() == "Windows":
+        tray_thread = threading.Thread(target=setup_tray_icon, daemon=True)
+        tray_thread.start()
+    else: 
+        logger.info("Tray icon disabled (not supported on this OS).")
     try:
         asyncio.run(main())
     except SystemExit:
