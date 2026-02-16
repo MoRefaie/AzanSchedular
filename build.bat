@@ -1,6 +1,6 @@
 @echo off
 
 REM Build AzanScheduler executable
-pyinstaller AzanSchedular.spec
+pyinstaller AzanScheduler.spec
 echo Build complete. Check the dist folder for AzanScheduler.exe
 pause

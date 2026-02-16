@@ -1,4 +1,4 @@
-# Contributing to AzanSchedular
+# Contributing to AzanScheduler
 
 Thank you for your interest in contributing! Your help is welcome and appreciated.
 
@@ -30,4 +30,4 @@ Thank you for your interest in contributing! Your help is welcome and appreciate
 
 ---
 
-Thank you for helping make AzanSchedular better!
+Thank you for helping make AzanScheduler better!

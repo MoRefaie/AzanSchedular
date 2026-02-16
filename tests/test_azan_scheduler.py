@@ -3,7 +3,7 @@ import os
 import pytest
 from unittest.mock import patch, AsyncMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from AzanSchedular.azan_scheduler import AzanScheduler
+from AzanScheduler.azan_scheduler import AzanScheduler
 
 
 def test_azan_scheduler_init():
@@ -16,7 +16,7 @@ def test_azan_scheduler_init():
 async def test_play_azan_calls_announce():
     scheduler = AzanScheduler()
     scheduler.manager.announce = AsyncMock()
-    with patch("AzanSchedular.azan_scheduler.config.load_config") as mock_load:
+    with patch("AzanScheduler.azan_scheduler.config.load_config") as mock_load:
         # Setup config values for all required keys
         mock_load.side_effect = lambda key=None: {
             "DEVICES": ["dev1"],

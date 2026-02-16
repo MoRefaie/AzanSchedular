@@ -23,9 +23,9 @@ Dev/
 Test/
 
 # Dynamic Configurations
-AzanSchedular/config/*.json
-!AzanSchedular/config/config.json
-!AzanSchedular/config/system.json
+AzanScheduler/config/*.json
+!AzanScheduler/config/config.json
+!AzanScheduler/config/system.json
 
 # MYPY
 .mypy_cache/

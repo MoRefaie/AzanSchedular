@@ -1,9 +1,9 @@
-# AzanSchedular
+# AzanScheduler
 
-AzanSchedular is a cross-platform application for managing and scheduling Azan (Islamic prayer calls) with a modern UI, system tray integration, and robust scheduling features.
+AzanScheduler is a cross-platform application for managing and scheduling Azan (Islamic prayer calls) with a modern UI, system tray integration, and robust scheduling features.
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/MoRefaie/AzanSchedular/build-schedular.yml?branch=main)
-![License](https://img.shields.io/github/license/MoRefaie/AzanSchedular)
+![Build Status](https://img.shields.io/github/actions/workflow/status/MoRefaie/AzanScheduler/AzanScheduler-Build.yml?branch=main)
+![License](https://img.shields.io/github/license/MoRefaie/AzanScheduler)
 
 ## Features
 
@@ -29,14 +29,14 @@ AzanSchedular is a cross-platform application for managing and scheduling Azan (
 
 ```bash
 # Clone the repo
-$ git clone https://github.com/MoRefaie/AzanSchedular.git
-$ cd AzanSchedular
+$ git clone https://github.com/MoRefaie/AzanScheduler.git
+$ cd AzanScheduler
 
 # Install Python dependencies
 $ pip install -r requirements.txt
 
 # Run the backend
-$ python AzanSchedular/azan_app.py
+$ python AzanScheduler/azan_app.py
 
 # (Optional) Run the UI
 $ git clone https://github.com/MoRefaie/AzanUI.git
@@ -47,13 +47,13 @@ $ npm run dev
 
 ## Configuration
 
-- Edit `AzanSchedular/config/system.json` for API and UI settings.
+- Edit `AzanScheduler/config/system.json` for API and UI settings.
 - Use environment variables for secrets in production.
 
 ## Logs & Media
 
-- Logs are stored in `AzanSchedular/logs/`.
-- Media files (icons, audio) are in `AzanSchedular/media/`.
+- Logs are stored in `AzanScheduler/logs/`.
+- Media files (icons, audio) are in `AzanScheduler/media/`.
 
 ## Tests
 
@@ -73,12 +73,12 @@ This project is licensed under the MIT License. See [License.txt](License.txt).
 
 ## FAQ
 
-- **How do I add a new prayer time calculation method?** See the scheduler module and extend `AzanSchedular/prayer_times_fetcher.py`.
+- **How do I add a new prayer time calculation method?** See the scheduler module and extend `AzanScheduler/prayer_times_fetcher.py`.
 - **How do I run tests?** `pytest` in the project root.
 
 ## Troubleshooting
 
-- Check logs in `AzanSchedular/logs/` for errors.
+- Check logs in `AzanScheduler/logs/` for errors.
 - Ensure all dependencies are installed and ports are available.
 
 ---

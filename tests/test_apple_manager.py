@@ -3,7 +3,7 @@ import os
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from AzanSchedular.apple_manager import AppleManager
+from AzanScheduler.apple_manager import AppleManager
 
 
 @pytest.mark.asyncio

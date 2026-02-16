@@ -2,12 +2,12 @@ import sys
 import os
 from unittest.mock import patch
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-from AzanSchedular.prayer_times_fetcher import PrayerTimesFetcher
+from AzanScheduler.prayer_times_fetcher import PrayerTimesFetcher
 
 
 def test_get_timezone_valid():
     fetcher = PrayerTimesFetcher()
-    with patch("AzanSchedular.prayer_times_fetcher.config.load_config", return_value="UTC"):
+    with patch("AzanScheduler.prayer_times_fetcher.config.load_config", return_value="UTC"):
         tz = fetcher._get_timezone()
         assert tz is not None
 
@@ -32,7 +32,7 @@ def test_reload_data_handles_missing_file():
 
 def test_is_new_month_returns_bool():
     fetcher = PrayerTimesFetcher()
-    with patch("AzanSchedular.prayer_times_fetcher.config.load_config", return_value="UTC"):
+    with patch("AzanScheduler.prayer_times_fetcher.config.load_config", return_value="UTC"):
         assert isinstance(fetcher._is_new_month({"1": {}}), bool)
 
 
@@ -47,7 +47,7 @@ def test_fetch_prayer_times_invalid_type():
             return {"icci": "url"}
         return None
 
-    with patch("AzanSchedular.prayer_times_fetcher.config.load_config", side_effect=load_config_side_effect):
+    with patch("AzanScheduler.prayer_times_fetcher.config.load_config", side_effect=load_config_side_effect):
         with patch.object(fetcher, "_is_file_outdated", return_value=False):
             with patch.object(fetcher, "_reload_data", return_value={"1": {}}):
                 result = fetcher.fetch_prayer_times("badtype")
