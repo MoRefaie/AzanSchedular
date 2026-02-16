@@ -7,10 +7,12 @@ from AzanSchedular.config_manager import SystemConfigManager, ConfigManager
 
 
 def test_system_config_manager_load_sys_config():
+    # Ensure os.path.exists returns True for config directory and system.json
     with patch("builtins.open", mock_open(read_data='{"API_HOST": "127.0.0.1"}')):
         with patch("os.getcwd", return_value="/tmp"):
-            mgr = SystemConfigManager()
-            assert mgr.load_sys_config("API_HOST") == "127.0.0.1"
+            with patch("os.path.exists", return_value=True):
+                mgr = SystemConfigManager()
+                assert mgr.load_sys_config("API_HOST") == "127.0.0.1"
 
 
 def test_config_manager_load_and_save_config():
@@ -42,10 +44,19 @@ def test_validate_single_switch():
     assert not mgr._validate_single_switch(123)
 
 
-def test_validate_dict_source():
+def test_sanitize_sources():
     mgr = ConfigManager()
-    assert mgr._validate_dict_source({"a": "http://x.com"})
-    assert not mgr._validate_dict_source({"a": "badurl"})
+    # valid source should keep itself and ensure Default is present
+    cleaned, msgs = mgr._sanitize_sources({"a": "http://x.com"})
+    assert cleaned.get("a") == "http://x.com"
+    assert cleaned.get("Default") == "--"
+    assert msgs == []
+
+    # invalid url should be removed but Default still present, and messages should indicate failure
+    cleaned2, msgs2 = mgr._sanitize_sources({"a": "badurl"})
+    assert "a" not in cleaned2
+    assert cleaned2.get("Default") == "--"
+    assert any("Invalid URL" in m for m in msgs2)
 
 
 def test_is_validate_key():
