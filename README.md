@@ -2,7 +2,8 @@
 
 AzanScheduler is a cross-platform application for managing and scheduling Azan (Islamic prayer calls) with a modern UI, system tray integration, and robust scheduling features.
 
-![Build Status](https://img.shields.io/github/actions/workflow/status/MoRefaie/AzanScheduler/AzanScheduler-Build.yml?branch=main)
+![Build Status](https://img.shields.io/github/actions/workflow/status/MoRefaie/AzanScheduler/AzanScheduler-Build.yml)
+![Latest Release](https://img.shields.io/github/v/release/MoRefaie/AzanScheduler)
 ![License](https://img.shields.io/github/license/MoRefaie/AzanScheduler)
 
 ## Features
