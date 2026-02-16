@@ -1,6 +1,6 @@
 {
   "CONSOLE_LOGGING": "On",
-  "API_HOST": "0.0.0.0",
+  "API_HOST": "::",
   "API_PORT": 8000,
   "API_CORS": {
     "allow_origins": ["*"],
