@@ -11,6 +11,7 @@ from AzanSchedular.scheduler_manager import start_scheduler
 from AzanSchedular.logging_config import get_logger
 from AzanSchedular.config_manager import ConfigManager, SystemConfigManager
 
+
 def load_windows_modules() -> tuple:
     if platform.system() == "Windows":
         import pystray
@@ -18,6 +19,7 @@ def load_windows_modules() -> tuple:
         import winreg
         return pystray, Image, winreg
     return None, None, None
+
 
 pystray, Image, winreg = load_windows_modules()
 
