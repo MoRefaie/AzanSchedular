@@ -75,13 +75,11 @@ class ConfigManager:
         self.media_folder = os.path.join(os.getcwd(), 'media')
         self.ensure_config_folder()
 
-
     def ensure_config_folder(self):
         """
         Ensures the config folder, config.json and default_formatted_timetable.json exist in the current working directory.
         If not, copies them from the PyInstaller _MEIPASS directory.
         """
-
         if hasattr(sys, '_MEIPASS'):
             source_config_dir = os.path.join(sys._MEIPASS, 'config')
             source_config_file = os.path.join(source_config_dir, 'config.json')
@@ -178,8 +176,8 @@ class ConfigManager:
         """
         status_messages = []
         if not isinstance(value, dict):
-            logger.error(f"❌ Key 'SOURCES' must be a dictionary with source names as keys and valid URLs as values.")
-            status_messages.append( f"Key 'SOURCES' must be a dictionary with source names as keys and valid URLs as values.")
+            logger.error("❌ Key 'SOURCES' must be a dictionary with source names as keys and valid URLs as values.")
+            status_messages.append("Key 'SOURCES' must be a dictionary with source names as keys and valid URLs as values.")
             return {}, status_messages
 
         cleaned = dict(value)  # shallow copy
@@ -195,13 +193,13 @@ class ConfigManager:
                 continue
             if not self._validate_url(url):
                 logger.error(f"❌ Invalid URL for source '{name}': {url}")
-                status_messages.append( f"Invalid URL for source '{name}'.")
+                status_messages.append(f"Invalid URL for source '{name}'.")
                 invalid_sources.append(name)
 
         for name in invalid_sources:
             del cleaned[name]
 
-        return cleaned,status_messages
+        return cleaned, status_messages
 
     def _is_validate_key(self, key: str, type=None) -> bool:
         if type == "audio":
@@ -225,7 +223,7 @@ class ConfigManager:
 
             # Validate SOURCES as a dictionary
             if key == "SOURCES":
-                cleaned_sources,status_messages = self._sanitize_sources(value)
+                cleaned_sources, status_messages = self._sanitize_sources(value)
                 if not cleaned_sources:
                     logger.error("❌ SOURCES must be a dictionary with at least the 'Default' source.")
                     status[key] = {"status": "fail", "message": ", ".join(status_messages)}
@@ -243,7 +241,7 @@ class ConfigManager:
 
                 if value not in sources:
                     logger.error(f"❌ Key '{key}' must be one of the available sources: {sources}.")
-                    status[key] = {"status": "fail","message": f"Key '{key}' must be one of the available sources: {sources}."}
+                    status[key] = {"status": "fail", "message": f"Key '{key}' must be one of the available sources: {sources}."}
                     continue
 
             # Validate TIMEZONE to be a valid timezone using dateutil.tz

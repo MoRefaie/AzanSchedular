@@ -437,10 +437,10 @@ class PrayerTimesFetcher:
         Fetches today's prayer times for the specified location.
         Handles Default location separately.
         """
-        # 1. Resolve location based on timetable mode 
-        if timetable == "default": 
-            location = "default" 
-        else: 
+        # 1. Resolve location based on timetable mode
+        if timetable == "default":
+            location = "default"
+        else:
             location = config.load_config("DEFAULT_TIMETABLE")
 
         # SPECIAL CASE: Default location

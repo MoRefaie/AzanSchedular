@@ -181,7 +181,7 @@ async def main():
                     if platform.system() == "Windows":
                         logger.info(f"Opening AzanUI in browser: {ui_url}")
                         webbrowser.open(ui_url)
-                    else: 
+                    else:
                         logger.info("Skipping browser auto-open (not Windows).")
                 else:
                     logger.warning("AzanUI not available or UI_HOST/UI_PORT missing.")
@@ -212,6 +212,7 @@ def on_quit(icon, item):
     icon.stop()
     shutdown_trigger = True
 
+
 def on_open_azanui(icon, item):
     ui_host = sys_config.load_sys_config("UI_HOST")
     ui_port = sys_config.load_sys_config("UI_PORT")
@@ -221,6 +222,7 @@ def on_open_azanui(icon, item):
 
     logger.info(f"Opening AzanUI in browser: {ui_url}")
     webbrowser.open(ui_url)
+
 
 def is_autostart_enabled():
     """Check if auto-start is enabled in Windows registry."""
@@ -292,7 +294,7 @@ def setup_tray_icon():
     # Use your icon file path here
     icon_path = os.path.join(media_dir, "icon.ico")
     image = Image.open(icon_path)
-    
+
     # Create initial menu with auto-start status
     autostart_status = "✓ Auto-start enabled" if is_autostart_enabled() else "Auto-start disabled"
     menu = pystray.Menu(
@@ -302,7 +304,6 @@ def setup_tray_icon():
         pystray.Menu.SEPARATOR,
         pystray.MenuItem('Quit', on_quit)
     )
-    
     icon = pystray.Icon("AzanSchedular", image, "Azan Schedular", menu)
     icon.run()
 
@@ -312,7 +313,7 @@ if __name__ == "__main__":
     if platform.system() == "Windows":
         tray_thread = threading.Thread(target=setup_tray_icon, daemon=True)
         tray_thread.start()
-    else: 
+    else:
         logger.info("Tray icon disabled (not supported on this OS).")
     try:
         asyncio.run(main())
