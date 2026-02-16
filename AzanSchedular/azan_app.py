@@ -6,17 +6,20 @@ import threading
 import webbrowser
 import subprocess
 import platform
-if platform.system() == "Windows":
-    import pystray
-    from PIL import Image
-    import winreg
-else:
-    pystray = None
-    winreg = None
 from AzanSchedular.api import app
 from AzanSchedular.scheduler_manager import start_scheduler
 from AzanSchedular.logging_config import get_logger
 from AzanSchedular.config_manager import ConfigManager, SystemConfigManager
+
+def load_windows_modules() -> tuple:
+    if platform.system() == "Windows":
+        import pystray
+        from PIL import Image
+        import winreg
+        return pystray, Image, winreg
+    return None, None, None
+
+pystray, Image, winreg = load_windows_modules()
 
 # Get a logger for this module
 logger = get_logger(__name__)

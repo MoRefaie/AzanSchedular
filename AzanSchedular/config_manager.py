@@ -166,7 +166,7 @@ class ConfigManager:
             return False
         return True
 
-    def _sanitize_sources(self, value: dict) -> dict:
+    def _sanitize_sources(self, value: dict) -> tuple[dict, list]:
         """
         Normalizes the value is a dictionary for sources.:
         - Ensures it's a dict
